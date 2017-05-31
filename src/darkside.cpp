@@ -35,14 +35,14 @@ void dk_master_thread(void) {
 } 
 ///worker thread
 void dk_worker_thread(void) {
-	
+		
 }
 
 /// start tcp_server
 //  param: work_count  worker thread count
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
-int dk_start(int worker_count = 1, int listen port) {
+int dk_start(int worker_count = 1, int listen_port=9000) {
 	dk_listen_port = listen_port;
 	int master_stat = dk_thread_func(dk_master_thread);	
 	for(int i = 0; i < worker_count; ++i)

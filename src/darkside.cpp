@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <sys/socket.h>
 ///thread create function
 int dk_thread_func(void (*func)(void)) {
 	pthread_t thd;
@@ -8,12 +9,10 @@ int dk_thread_func(void (*func)(void)) {
 }
 
 ///master thread
-void dk_master_thread() {
-	
-}
-
+void dk_master_thread(void) {
+} 
 ///worker thread
-void dk_worker_thread() {
+void dk_worker_thread(void) {
 	
 }
 

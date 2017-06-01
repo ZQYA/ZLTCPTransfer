@@ -1,5 +1,6 @@
 #include "dktool.hpp"
-#include <errno>
+#include <cerrno>
+#include <unistd.h>
 SOCKET dk_socket() {
 	SOCKET sk_fd = socket(AF_INET,SOCK_STREAM,0);
 	if(-1 == sk_fd) {
@@ -44,13 +45,13 @@ int dk_accept(SOCKET sk_fd, sockaddr_in *p_server_addr) {
 }
 
 int dk_read(SOCKET fd,void *buffer, size_t n) {		
-	char *tmp = buffer;
+	char *tmp = (char *)buffer;
 	int read_last = n;
 	int read_cout = 0;
 	while (read_last > 0) {
 		read_cout = read(fd,tmp,read_last);
 		if (read_cout < 0 ) {
-			if (EINTER==errno)
+			if (EINTR==errno)
 				read_cout = 0;
 			else 	
 				break;
@@ -62,19 +63,19 @@ int dk_read(SOCKET fd,void *buffer, size_t n) {
 }
 
 int dk_write(SOCKET fd,void *buffer, size_t n) {
-	char *tmp = buffer;
+	char *tmp = (char *)buffer;
 	int write_last = n;
 	int write_count = 0;
 	while(write_last > 0) {
 		write_count = write(fd,tmp,write_last);
 		if(write_count < 0) {
-			if (EINTER == errno)
+			if (EINTR == errno)
 				write_count = 0;
 			else 
 				break;
 		}
 		write_last -= write_count;
-		tmp += write_cout;
+		tmp += write_count;
 	}
 	return n - write_last;
 }

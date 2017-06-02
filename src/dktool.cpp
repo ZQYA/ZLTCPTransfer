@@ -1,6 +1,7 @@
 #include "dktool.hpp"
 #include <cerrno>
 #include <unistd.h>
+int tcp_backlog_size =  100; /// default listen size
 SOCKET dk_socket() {
 	SOCKET sk_fd = socket(AF_INET,SOCK_STREAM,0);
 	if(-1 == sk_fd) {
@@ -34,7 +35,7 @@ int dk_listen(SOCKET sk_fd) {
 	return listen_stat;
 }
 
-int dk_accept(SOCKET sk_fd, sockaddr_in *p_server_addr) {
+SOCKET dk_accept(SOCKET sk_fd, sockaddr_in *p_server_addr) {
 	socklen_t size = sizeof(sockaddr_in);
 	int accept_stat = accept(sk_fd,(sockaddr*)p_server_addr,&size);
 	if(-1 == accept_stat) {

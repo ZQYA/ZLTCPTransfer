@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include "dktool.hpp"
 #include <cstdlib>
+#include <unistd.h>
 
 
 //// macros 
@@ -10,7 +11,8 @@
 
 
 /// vars
-int dk_listen_port = 0;
+int dk_listen_port = 8000; // server default port
+bool dk_start_flag = false;// indicate server running state 
 
 ///thread create function
 int dk_thread_func(void (*func)(void)) {
@@ -30,9 +32,24 @@ void dk_master_thread(void) {
 	stat = dk_listen(sk_fd);
 	dk_check(stat);
 //TODO: multple I/O need support.
-	stat = dk_accept(sk_fd,&server_addr);
-	dk_check(stat);
+	while(dk_start_flag){
+		SOCKET con_so = dk_accept(sk_fd,&server_addr);
+#ifndef DK_THREAD
+		pid_t pid = fork()
+		if (pid == 0) {  /// start child process
+			dk_check(stat);
+			handleSocket(con_so);	
+			exit(0);
+		}
+#endif
+	}
 } 
+#ifndef DK_THREAD 
+void handleSocket(SOCKET sock) {		
+	
+}
+#endif
+
 ///worker thread
 void dk_worker_thread(void) {
 		
@@ -43,10 +60,17 @@ void dk_worker_thread(void) {
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1, int listen_port=9000) {
+	dk_start_flag = true;
 	dk_listen_port = listen_port;
 	int master_stat = dk_thread_func(dk_master_thread);	
+#ifndef DK_THREAD
 	for(int i = 0; i < worker_count; ++i)
 		dk_thread_func(dk_worker_thread);
+#endif
 	return master_stat;
+}
+
+void dk_stop() {
+	dk_start_flag = false;
 }
 

@@ -4,3 +4,7 @@
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count);
+
+void dk_stop();
+
+

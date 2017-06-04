@@ -3,7 +3,7 @@
 #include "dktool.hpp"
 #include <cstdlib>
 #include <unistd.h>
-
+#include <csignal>
 
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
@@ -13,7 +13,13 @@
 /// vars
 int dk_listen_port = 8000; // server default port
 bool dk_start_flag = false;// indicate server running state 
+volatile sig_atomic_t sig_status;
 
+#ifndef DK_THREAD 
+void handleSocket(SOCKET sock) {		
+    printf("handle sock");	
+}
+#endif
 ///thread create function
 int dk_thread_func(void (*func)(void)) {
 	pthread_t thd;
@@ -21,9 +27,14 @@ int dk_thread_func(void (*func)(void)) {
 	pthread_detach(thd);
 	return 1;
 }
-
+void childprocess_exit_handler(int signal) {
+   sig_status = signal; 
+}
 ///master thread
 void dk_master_thread(void) {
+#ifndef DK_THREAD
+    signal(SIGCHLD,childprocess_exit_handler);        
+#endif
 	SOCKET sk_fd = dk_socket();
 	dk_check(sk_fd);
 	sockaddr_in server_addr;
@@ -35,20 +46,17 @@ void dk_master_thread(void) {
 	while(dk_start_flag){
 		SOCKET con_so = dk_accept(sk_fd,&server_addr);
 #ifndef DK_THREAD
-		pid_t pid = fork()
+		pid_t pid = fork();
 		if (pid == 0) {  /// start child process
 			dk_check(stat);
 			handleSocket(con_so);	
 			exit(0);
-		}
+		}else {
+            close(con_so);
+        }
 #endif
 	}
 } 
-#ifndef DK_THREAD 
-void handleSocket(SOCKET sock) {		
-	
-}
-#endif
 
 ///worker thread
 void dk_worker_thread(void) {
@@ -67,10 +75,10 @@ int dk_start(int worker_count = 1, int listen_port=9000) {
 	for(int i = 0; i < worker_count; ++i)
 		dk_thread_func(dk_worker_thread);
 #endif
+    while(1) {}
 	return master_stat;
 }
 
 void dk_stop() {
 	dk_start_flag = false;
-}
-
+} 

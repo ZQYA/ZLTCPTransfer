@@ -16,3 +16,5 @@ SOCKET dk_accept(SOCKET sk_fd, sockaddr_in *p_server_addr);
 int dk_read(SOCKET fd,void *buffer, size_t n);
 /// socket write wrapper
 int dk_write(SOCKET fd,void *buffer, size_t n);
+/// socket connect weapper
+int dk_connect(SOCKET socket, const struct sockaddr *address,socklen_t address_len);

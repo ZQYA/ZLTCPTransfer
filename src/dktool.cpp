@@ -80,3 +80,11 @@ int dk_write(SOCKET fd,void *buffer, size_t n) {
 	}
 	return n - write_last;
 }
+
+int dk_connect(SOCKET socket, const struct sockaddr *address,socklen_t address_len) {
+	int con_stat = connect(socket, address,address_len);
+	if (-1 == con_stat) {
+		perror("connection creat failed");	
+	}
+	return con_stat;
+}

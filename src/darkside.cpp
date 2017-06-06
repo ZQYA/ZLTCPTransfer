@@ -17,7 +17,12 @@ volatile sig_atomic_t sig_status;
 
 #ifndef DK_THREAD 
 void handleSocket(SOCKET sock) {		
-    printf("handle sock");	
+	char *buffer = (char *)malloc(4);
+	bzero(buffer,4);
+  	int readsize = dk_read(sock,buffer,4);
+	buffer[readsize] = '0';
+   	printf("%s",buffer);	
+	free(buffer);
 }
 #endif
 ///thread create function
@@ -28,7 +33,12 @@ int dk_thread_func(void (*func)(void)) {
 	return 1;
 }
 void childprocess_exit_handler(int signal) {
-   sig_status = signal; 
+	sig_status = signal; 
+	pid_t pid;	   
+	int stat;
+	while((pid = waitpid(-1,&stat,WNOHANG))>0) {
+		printf("child process exit:%d",pid);	
+	}
 }
 ///master thread
 void dk_master_thread(void) {

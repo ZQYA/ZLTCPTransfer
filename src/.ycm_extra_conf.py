@@ -31,7 +31,7 @@ flags = [
     '-isystem', '/usr/include/x86_64-linux-gnu',
     '-isystem', '/usr/lib/gcc/x86_64-linux-gnu/4.8/include',
     '-isystem', '/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed',
-    '-I.',
+    '-I','../../MMTP'
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

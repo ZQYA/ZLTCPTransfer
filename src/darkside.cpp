@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <csignal>
-
+#include "luke.hpp"
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants
@@ -19,9 +19,13 @@ volatile sig_atomic_t sig_status;
 void handleSocket(SOCKET sock) {		
 	char *buffer = (char *)malloc(4);
 	bzero(buffer,4);
-  	int readsize = dk_read(sock,buffer,4);
-	buffer[readsize] = '0';
-   	printf("%s",buffer);	
+	struct mmtp mp;
+	initilizer_mmtp(&mp);
+	int size = mp_read(sock,0,&mp);
+	char *message = (char *)malloc(mp.content_length+1);
+	bzero(message,mp.content_length+1);
+	memcpy(message,mp.content,mp.content_length);
+   	printf("%s",message);	
 	free(buffer);
 }
 #endif
@@ -55,16 +59,17 @@ void dk_master_thread(void) {
 //TODO: multple I/O need support.
 	while(dk_start_flag){
 		SOCKET con_so = dk_accept(sk_fd,&server_addr);
-#ifndef DK_THREAD
-		pid_t pid = fork();
-		if (pid == 0) {  /// start child process
-			dk_check(stat);
-			handleSocket(con_so);	
-			exit(0);
-		}else {
-            close(con_so);
-        }
-#endif
+		handleSocket(con_so);
+//#ifndef DK_THREAD
+//		pid_t pid = fork();
+//		if (pid == 0) {  /// start child process
+//			dk_check(stat);
+//			handleSocket(con_so);	
+//			exit(0);
+//		}else {
+//            close(con_so);
+//       }
+//#endif
 	}
 } 
 

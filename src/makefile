@@ -1,5 +1,4 @@
 .PHONY : C3P0 R2D2 clean
-
 mp_objects = $(patsubst %.cpp,%.o,$(wildcard ../../MMTP/*.cpp)) 
 mp_sources = $(wildcard ../../MMTP/*.cpp)
 C3P0 : C3P0.o dktool.o darkside.o $(mp_objects)
@@ -8,7 +7,7 @@ C3P0.o : C3P0.cpp
 	gcc  -c C3P0.cpp darkside.cpp dktool.cpp $(mp_objects) -ggdb -I ../../MMTP
 dktool.o : dktool.cpp
 	gcc  -c dktool.cpp  -ggdb
-darkside.o : dktool.cpp
+darkside.o : darkside.cpp
 	gcc  -c darkside.cpp -I ../../MMTP -ggdb 
 $(mp_objects): $(mp_sources)
 	gcc -c $^  -I /Users/quanzhou/oscode/ZLTCPTransfer/src -ggdb

@@ -12,7 +12,6 @@ darkside.o : darkside.cpp
 	gcc  -c darkside.cpp -I ../../MMTP -ggdb 
 $(mp_objects) : $(mp_sources)
 	gcc -o $@ -c $^  -I ./ -ggdb
-
 R2D2 : R2D2.o dktool.o $(mp_objects)
 	gcc -o R2D2 R2D2.o dktool.o $(mp_objects) -ggdb -I ../../MMTP
 R2D2.o : R2D2.cpp

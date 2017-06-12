@@ -58,6 +58,8 @@ void dk_master_thread(void) {
 	dk_check(stat);
 //TODO: multple I/O need support.
 	while(dk_start_flag){
+		bool enable_reuse_addr = true;
+		setsockopt(sk_fd,SOL_SOCKET,SO_REUSEADDR,&enable_reuse_addr,sizeof(enable_reuse_addr));
 		SOCKET con_so = dk_accept(sk_fd,&server_addr);
 		handleSocket(con_so);
 //#ifndef DK_THREAD

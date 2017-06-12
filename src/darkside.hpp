@@ -4,8 +4,8 @@
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
   	   
-int dk_start(int worker_count,int port);
 
+int dk_start(int worker_count ,  int listen_sock_count , int listen_port) ;
 void dk_stop();
 
 

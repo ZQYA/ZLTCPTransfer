@@ -7,26 +7,24 @@
 #include <csignal>
 #include "luke.hpp"
 #include <arpa/inet.h>
+#include <list>
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants
 
 #define MAXSOCK(SOCKA,SOCKB) ((SOCKA)>(SOCKB)?(SOCKA):(SOCKB))
-typedef struct listening_sock {
-	SOCKET sock;
-	struct listening_sock *next;
-	listening_sock (SOCKET s, struct listening_sock *n) : sock(s),next(n){
-		printf("init sock :%d\n",s);
-	}
-} listening_sock;
 
 /// vars
 int dk_listen_port = 8000; // server default port
+size_t dk_accept_max_count = 1;
 bool dk_start_flag = false;// indicate server running state 
 volatile sig_atomic_t sig_status;
 pthread_mutex_t receive_queue_full_lock = PTHREAD_MUTEX_INITIALIZER; 
 pthread_mutex_t receive_queue_empty_lock = PTHREAD_MUTEX_INITIALIZER;
-listening_sock *sock_header = NULL;
+pthread_cond_t receive_queue_full_sig = PTHREAD_COND_INITIALIZER;
+pthread_cond_t receive_queue_empty_sig = PTHREAD_COND_INITIALIZER;
+std::list<SOCKET> sock_list;
+SOCKET  listen_sock_fd;
 #define DK_THREAD 
 #ifndef DK_THREAD 
 void handleSocket(SOCKET sock) {		
@@ -69,12 +67,18 @@ void childprocess_exit_handler(int signal) {
 }
 #endif
 
+void produce_socket(SOCKET s) {
+	pthread_mutex_lock(&receive_queue_empty_lock);					
+	sock_list.push_back(s);	
+	pthread_cond_signal(&receive_queue_full_sig);
+	pthread_mutex_unlock(&receive_queue_empty_lock);	
+}
+
+
 void accecpt_new_connection(SOCKET sock) {
 	sockaddr_in server_addr;
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(dk_listen_port);
-	server_addr.sin_addr.s_addr = inet_addr(INADDR_ANY);
 	SOCKET accept_sock = dk_accept(sock,&server_addr);
+	produce_socket(accept_sock);
 }
 
 
@@ -85,77 +89,75 @@ void dk_master_thread(void) {
 #endif
 	fd_set read_set;
 	struct timeval tv;
-	int max_fd;
+	int max_fd = listen_sock_fd+1;	
 //TODO: multple I/O need support.
 	while(dk_start_flag){
 		FD_ZERO(&read_set);
-		max_fd = -1;	
-		for (listening_sock *sock = sock_header; sock!=NULL; sock = sock->next) {
-			FD_SET(sock->sock,&read_set);
-			max_fd = MAXSOCK(max_fd,sock->sock);			
-		}
+		FD_SET(listen_sock_fd,&read_set);
 		tv.tv_sec = 0;
 		tv.tv_usec = 200 * 1000;
-		if(select(max_fd+1,&read_set,NULL,NULL,&tv)>0) {
-			for (listening_sock *sock = sock_header; sock!=NULL; sock = sock->next) {
-				if(dk_start_flag&&FD_ISSET(sock->sock,&read_set)) {
-					accecpt_new_connection(sock->sock);										
-				}	
-			}
+		if(select(max_fd,&read_set,NULL,NULL,&tv)>0) {
+			if(dk_start_flag&&FD_ISSET(listen_sock_fd,&read_set)) {
+				accecpt_new_connection(listen_sock_fd);										
+			}	
 		}
-#ifndef DK_THREAD
-		pid_t pid = fork();
-		if (pid == 0) {  /// start child process
-			dk_check(stat);
-			handleSocket(con_so);	
-			exit(0);
-		}else {
-			close(con_so);
-		}
-#else 
-			
-#endif
 	}
 } 
 
 ///worker thread
 void dk_worker_thread(void) {
-		
+	while(dk_start_flag) {
+			pthread_mutex_lock(&receive_queue_empty_lock);					
+			while(dk_start_flag && sock_list.size()<=0){
+				pthread_cond_wait(&receive_queue_full_sig,&receive_queue_empty_lock);	
+			}		
+			
+			fd_set read_set;
+			struct timeval tv;
+			tv.tv_sec = 1;
+			tv.tv_usec = 200*1000;
+			int max_fd = -1;
+			FD_ZERO(&read_set);
+			for(std::list<SOCKET>::iterator it = sock_list.begin(); it != sock_list.end(); ++it) {
+				SOCKET sk_fd = *it;	
+				FD_SET(sk_fd,&read_set);
+				max_fd = MAXSOCK(max_fd,sk_fd);	
+			}
+			if (select(max_fd+1,&read_set,NULL,NULL,&tv)) {
+				for(std::list<SOCKET>::iterator it = sock_list.begin(); it != sock_list.end(); ++it) {
+					SOCKET sk_fd = *it;	
+					if(FD_ISSET(sk_fd,&read_set)) {
+						struct mmtp mp;
+						initilizer_mmtp(&mp);
+						mp_read(sk_fd,0,&mp);
+						char *message = (char *)malloc(mp.content_length+1);
+						memcpy(message,mp.content,mp.content_length);
+						printf("%s",message);
+						bzero(message,mp.content_length+1);
+						FD_CLR(sk_fd,&read_set);
+					}
+				}
+			}
+			pthread_mutex_unlock(&receive_queue_empty_lock);	
+	}
 }
 
 
-listening_sock *create_listen_socks(int count) {
-	listening_sock *ls = new listening_sock(0, NULL);
-	listening_sock *tmp = ls;
-   	for(int i = 0; i < count; ++i) {
-		SOCKET sk_fd= dk_socket(); 		
-		if(sk_fd>0) {
-			sockaddr_in server_addr;
-			server_addr.sin_family = AF_INET;
-			server_addr.sin_port = htons(dk_listen_port);
-			server_addr.sin_addr.s_addr = inet_addr(INADDR_ANY);
-			int stat = dk_bind(sk_fd,dk_listen_port,&server_addr);
-			dk_check(stat);
-			stat = dk_listen(sk_fd);
-			dk_check(stat);
-			if(0 == tmp->sock) {
-				tmp->sock = sk_fd;		
-			}else {
-				listening_sock *s = new listening_sock(sk_fd,NULL);
-				tmp->next = s;
-				tmp = s;
-			}	
-		}
-	}	return ls;
+SOCKET create_listen_socks() {
+	SOCKET sk_fd= dk_socket(); 		
+	if(sk_fd>0) {
+		sockaddr_in server_addr;
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_port = htons(dk_listen_port);
+		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+		int stat = dk_bind(sk_fd,dk_listen_port,&server_addr);
+		dk_check(stat);
+		stat = dk_listen(sk_fd);
+		dk_check(stat);
+	}
+	return sk_fd;
 }
 
-
-void destory_listen_socks(listening_sock *header) {
-	while(header!=NULL) {
-		header = header->next;
-		free(header);
-	}	
-}
 
 /// start tcp_server
 //  param: work_count  worker thread count
@@ -164,11 +166,10 @@ void destory_listen_socks(listening_sock *header) {
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000) {
 	dk_start_flag = true;
 	dk_listen_port = listen_port;
-	sock_header = create_listen_socks(listen_sock_count);
-#ifdef DK_THREAD
-	for(int i = 0; i < worker_count; ++i)
+	dk_accept_max_count = listen_sock_count;
+	listen_sock_fd = create_listen_socks();
+	//for(int i = 0; i < worker_count; ++i)
 		dk_thread_func(dk_worker_thread);
-#endif
 	int master_stat = dk_thread_func(dk_master_thread,false);	
 	return master_stat;
 }

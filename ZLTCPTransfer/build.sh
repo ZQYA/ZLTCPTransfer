@@ -2,7 +2,7 @@
 
 FRM_name="TCPTransfer"
 
-MMTP_path="../MMTP"
+MMTP_path="../../MMTP"
 MMTP_branch="develop"
 
 TCPTransfer_path=`pwd`

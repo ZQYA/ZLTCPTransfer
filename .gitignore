@@ -53,3 +53,33 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Xcode
+#build/
+*.pbxuser
+!default.pbxuser
+*.modelv3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xcuserstate
+project.xcworkspace
+xcuserdata
+UserInterfaceState.xcuserstate
+project.xcworkspace/
+project.xcworkspace/xcuserdata/
+xcuserdata/
+UserInterface.xcuserstate
+*.xccheckout
+profile
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+# CocoaPods
+Pods
+PodsBak
+Podfile.lock
+*.Breakpoints_v2.xcbkptlist

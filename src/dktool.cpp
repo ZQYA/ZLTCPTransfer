@@ -53,7 +53,7 @@ int dk_read(SOCKET fd,void *buffer, size_t n) {
 	int read_cout = 0;
 	while (read_last > 0) {
 		read_cout = read(fd,tmp,read_last);
-		if (read_cout < 0 ) {
+		if (read_cout <= 0 ) {
 			if (EINTR==errno)
 				read_cout = 0;
 			else 	

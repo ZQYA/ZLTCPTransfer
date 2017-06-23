@@ -1,6 +1,8 @@
 #include "dktool.hpp"
 #include <cerrno>
 #include <unistd.h>
+#include <cstdlib>
+#include <fcntl.h>
 int tcp_backlog_size =  100; /// default listen size
 SOCKET dk_socket() {
 	SOCKET sk_fd = socket(AF_INET,SOCK_STREAM,0);
@@ -88,3 +90,33 @@ int dk_connect(SOCKET socket, const struct sockaddr *address,socklen_t address_l
 	}
 	return con_stat;
 }
+void dk_deamonInit() {
+	pid_t pid = fork();
+	if(pid < 0) {
+		perror("fork failed");
+		exit(1);	
+	}else if(pid>0){
+		printf("parent will exit");
+		exit(0);	
+	}else { /// child process start
+		pid_t sid =	setsid();
+		if(sid < 0) {
+			perror("create session faild");
+			exit(1);
+		}else  {
+			pid = fork();	
+			if(pid < 0) {
+				perror("child fork child failed");
+				exit(1);
+			}else if(pid > 0) {
+				printf("child will exit");
+				exit(0);	
+			}else {
+				signal(SIGHUP,SIG_IGN);
+				open("/dev/null",O_RDONLY);
+				open("/dev/null",O_RDWR);
+				open("/dev/null",O_RDWR);
+			} 
+		}
+	}
+} 

@@ -1,5 +1,6 @@
 #include <sys/socket.h>
 #include <cstdio>
+#include <unistd.h>
 #include <netinet/in.h>
 #include <strings.h>
 #include <arpa/inet.h>
@@ -18,3 +19,6 @@ int dk_read(SOCKET fd,void *buffer, size_t n);
 int dk_write(SOCKET fd,void *buffer, size_t n);
 /// socket connect weapper
 int dk_connect(SOCKET socket, const struct sockaddr *address,socklen_t address_len);
+/// start deamon process
+void dk_deamonInit();
+#define dk_close(fd) close(fd)

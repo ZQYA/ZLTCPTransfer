@@ -13,6 +13,7 @@ int testclient(const char *host, int port) {
 	dk_connect(sk_fd,(const struct sockaddr *)&server_addr,sizeof(struct sockaddr_in));
 	char teststr[] = "hello world";
 	int write_size = mp_write(sk_fd,teststr,strlen(teststr),0,true);
+	dk_close(sk_fd);
 	return write_size;
 }
 

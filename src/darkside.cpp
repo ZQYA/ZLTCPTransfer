@@ -123,7 +123,7 @@ void dk_worker_thread(void) {
 				FD_SET(sk_fd,&read_set);
 				max_fd = MAXSOCK(max_fd,sk_fd);	
 			}
-			if (select(max_fd+1,&read_set,NULL,NULL,&tv)) {
+			if (select(max_fd+1,&read_set,NULL,NULL,&tv)>0) {
 				for(std::list<SOCKET>::iterator it = sock_list.begin(); it != sock_list.end(); ++it) {
 					SOCKET sk_fd = *it;	
 					if(FD_ISSET(sk_fd,&read_set)) {
@@ -134,7 +134,7 @@ void dk_worker_thread(void) {
 						memcpy(message,mp.content,mp.content_length);
 						printf("%s",message);
 						bzero(message,mp.content_length+1);
-						FD_CLR(sk_fd,&read_set);
+//						FD_CLR(sk_fd,&read_set);
 					}
 				}
 			}
@@ -164,6 +164,7 @@ SOCKET create_listen_socks() {
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000) {
+	dk_deamonInit();
 	dk_start_flag = true;
 	dk_listen_port = listen_port;
 	dk_accept_max_count = listen_sock_count;

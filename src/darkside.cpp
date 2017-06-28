@@ -8,6 +8,8 @@
 #include "luke.hpp"
 #include <arpa/inet.h>
 #include <list>
+#include <stdio.h>
+#include <fcntl.h>
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants
@@ -102,7 +104,53 @@ void dk_master_thread(void) {
 			}	
 		}
 	}
-} 
+}
+
+void dk_handle_msg(mmtp mp) {
+	char *message = (char *)malloc(mp.content_length+1);
+	memcpy(message,mp.content,mp.content_length);
+	printf("%s",message);
+	bzero(message,mp.content_length+1);
+	free(message);
+}
+
+void dk_handle_img(mmtp mp) {
+	char *img_data = (char *)malloc(mp.content_length);		
+	bzero(img_data,mp.content_length);
+	memcpy(img_data,mp.content,mp.content_length);
+	const char *home = getenv("HOME");
+	char *tmpfile = tempnam(home, "img");
+	printf("tmpfilename :%s\n",tmpfile);
+	int fd = open(tmpfile,O_RDWR|O_CREAT);
+	int re = write(fd,img_data,mp.content_length);
+	if(re < 0) {
+		perror("write failed");
+	}
+}
+
+void dk_handle_video(mmtp mp) {
+	char *img_data = (char *)malloc(mp.content_length);		
+	bzero(img_data,mp.content_length);
+	memcpy(img_data,mp.content,mp.content_length);
+	const char *home = getenv("HOME");
+	char *tmpfile = tempnam(home, "video");
+	printf("tmpfilename :%s\n",tmpfile);
+	int fd = open(tmpfile,O_WRONLY);
+	write(fd,img_data,mp.content_length);
+}
+void dk_handle_mmtp(mmtp mp) {
+	switch (mp.type) {
+		case 0: 
+			dk_handle_msg(mp);
+			break;
+		case 1: 
+			dk_handle_img(mp);
+			break;
+		case 2: 
+			dk_handle_video(mp);
+			break;
+	}		
+}
 
 ///worker thread
 void dk_worker_thread(void) {
@@ -135,10 +183,7 @@ void dk_worker_thread(void) {
 						if(size == 0) {
 							f_ds[f_di++] = sk_fd;		
 						}
-						char *message = (char *)malloc(mp.content_length+1);
-						memcpy(message,mp.content,mp.content_length);
-						printf("%s",message);
-						bzero(message,mp.content_length+1);
+						dk_handle_mmtp(mp);
 //						FD_CLR(sk_fd,&read_set);
 					}
 				}
@@ -175,7 +220,7 @@ SOCKET create_listen_socks() {
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000) {
-	dk_deamonInit();
+//	dk_deamonInit();
 	dk_start_flag = true;
 	dk_listen_port = listen_port;
 	dk_accept_max_count = listen_sock_count;

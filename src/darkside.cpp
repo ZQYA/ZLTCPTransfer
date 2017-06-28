@@ -10,6 +10,7 @@
 #include <list>
 #include <stdio.h>
 #include <fcntl.h>
+#include <map>
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants
@@ -27,6 +28,9 @@ pthread_cond_t receive_queue_full_sig = PTHREAD_COND_INITIALIZER;
 pthread_cond_t receive_queue_empty_sig = PTHREAD_COND_INITIALIZER;
 std::list<SOCKET> sock_list;
 SOCKET  listen_sock_fd;
+
+std::map<SOCKET,const char *> sock_data_map; 
+
 #define DK_THREAD 
 #ifndef DK_THREAD 
 void handleSocket(SOCKET sock) {		
@@ -106,7 +110,7 @@ void dk_master_thread(void) {
 	}
 }
 
-void dk_handle_msg(mmtp mp) {
+void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
 	char *message = (char *)malloc(mp.content_length+1);
 	memcpy(message,mp.content,mp.content_length);
 	printf("%s",message);
@@ -114,40 +118,39 @@ void dk_handle_msg(mmtp mp) {
 	free(message);
 }
 
-void dk_handle_img(mmtp mp) {
+void dk_handle_img(mmtp mp, SOCKET sk_fd) {
 	char *img_data = (char *)malloc(mp.content_length);		
 	bzero(img_data,mp.content_length);
 	memcpy(img_data,mp.content,mp.content_length);
-	const char *home = getenv("HOME");
-	char *tmpfile = tempnam(home, "img");
-	printf("tmpfilename :%s\n",tmpfile);
-	int fd = open(tmpfile,O_RDWR|O_CREAT);
+	int fd = open(sock_data_map[sk_fd],O_RDWR|O_CREAT|O_APPEND);
 	int re = write(fd,img_data,mp.content_length);
 	if(re < 0) {
 		perror("write failed");
 	}
 }
 
-void dk_handle_video(mmtp mp) {
+void dk_handle_video(mmtp mp, SOCKET sk_fd) {
 	char *img_data = (char *)malloc(mp.content_length);		
 	bzero(img_data,mp.content_length);
 	memcpy(img_data,mp.content,mp.content_length);
-	const char *home = getenv("HOME");
-	char *tmpfile = tempnam(home, "video");
-	printf("tmpfilename :%s\n",tmpfile);
-	int fd = open(tmpfile,O_WRONLY);
+	int fd = open(sock_data_map[sk_fd],O_RDWR|O_CREAT|O_APPEND);
 	write(fd,img_data,mp.content_length);
 }
-void dk_handle_mmtp(mmtp mp) {
+void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
+	if(sock_data_map.find(sk_fd) == sock_data_map.end()) {
+		const char *home = getenv("HOME");
+		char *tmpfile = strdup(tempnam(home, mp.type==0?"msg":(mp.type==1?"img":"video")));
+		sock_data_map[sk_fd] = tmpfile;
+	}
 	switch (mp.type) {
 		case 0: 
-			dk_handle_msg(mp);
+			dk_handle_msg(mp, sk_fd);
 			break;
 		case 1: 
-			dk_handle_img(mp);
+			dk_handle_img(mp,sk_fd);
 			break;
 		case 2: 
-			dk_handle_video(mp);
+			dk_handle_video(mp,sk_fd);
 			break;
 	}		
 }
@@ -183,7 +186,7 @@ void dk_worker_thread(void) {
 						if(size == 0) {
 							f_ds[f_di++] = sk_fd;		
 						}
-						dk_handle_mmtp(mp);
+						dk_handle_mmtp(mp, sk_fd);
 //						FD_CLR(sk_fd,&read_set);
 					}
 				}
@@ -193,6 +196,7 @@ void dk_worker_thread(void) {
 				if(f_ds[i]!=0) {
 					sock_list.remove(f_ds[i]);		
 				}
+				sock_data_map.erase(f_ds[i]);
 			}
 			pthread_mutex_unlock(&receive_queue_empty_lock);	
 	}

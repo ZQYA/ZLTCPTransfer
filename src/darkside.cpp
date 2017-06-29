@@ -224,7 +224,7 @@ SOCKET create_listen_socks() {
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000) {
-//	dk_deamonInit();
+	dk_deamonInit();
 	dk_start_flag = true;
 	dk_listen_port = listen_port;
 	dk_accept_max_count = listen_sock_count;

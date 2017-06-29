@@ -29,7 +29,7 @@ pthread_cond_t receive_queue_empty_sig = PTHREAD_COND_INITIALIZER;
 std::list<SOCKET> sock_list;
 SOCKET  listen_sock_fd;
 
-std::map<SOCKET,const char *> sock_data_map; 
+std::map<SOCKET,int>sock_data_map; 
 
 #define DK_THREAD 
 #ifndef DK_THREAD 
@@ -122,7 +122,8 @@ void dk_handle_img(mmtp mp, SOCKET sk_fd) {
 	char *img_data = (char *)malloc(mp.content_length);		
 	bzero(img_data,mp.content_length);
 	memcpy(img_data,mp.content,mp.content_length);
-	int fd = open(sock_data_map[sk_fd],O_RDWR|O_CREAT|O_APPEND);
+	
+	int fd = sock_data_map[sk_fd];
 	int re = write(fd,img_data,mp.content_length);
 	if(re < 0) {
 		perror("write failed");
@@ -133,14 +134,20 @@ void dk_handle_video(mmtp mp, SOCKET sk_fd) {
 	char *img_data = (char *)malloc(mp.content_length);		
 	bzero(img_data,mp.content_length);
 	memcpy(img_data,mp.content,mp.content_length);
-	int fd = open(sock_data_map[sk_fd],O_RDWR|O_CREAT|O_APPEND);
-	write(fd,img_data,mp.content_length);
+	int fd = sock_data_map[sk_fd];
+	int re = write(fd,img_data,mp.content_length);
+	if(re < 0) {
+		perror("write failed");
+	}
 }
 void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
 	if(sock_data_map.find(sk_fd) == sock_data_map.end()) {
 		const char *home = getenv("HOME");
 		char *tmpfile = strdup(tempnam(home, mp.type==0?"msg":(mp.type==1?"img":"video")));
-		sock_data_map[sk_fd] = tmpfile;
+		if(mp.type!= 0) {
+			int fd = open(tmpfile,O_CREAT|O_APPEND);
+			sock_data_map[sk_fd] = fd;
+		}
 	}
 	switch (mp.type) {
 		case 0: 

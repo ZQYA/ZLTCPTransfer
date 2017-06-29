@@ -141,7 +141,7 @@ void dk_handle_video(mmtp mp, SOCKET sk_fd) {
 	}
 }
 void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
-	if(sock_data_map.find(sk_fd) == sock_data_map.end()) {
+	if(sock_data_map.find(sk_fd) == sock_data_map.end() || mp.is_first) {
 		const char *home = getenv("HOME");
 		char *tmpfile = strdup(tempnam(home, mp.type==0?"msg":(mp.type==1?"img":"video")));
 		if(mp.type!= 0) {

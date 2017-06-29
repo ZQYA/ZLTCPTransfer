@@ -145,7 +145,7 @@ void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
 		const char *home = getenv("HOME");
 		char *tmpfile = strdup(tempnam(home, mp.type==0?"msg":(mp.type==1?"img":"video")));
 		if(mp.type!= 0) {
-			int fd = open(tmpfile,O_CREAT|O_APPEND);
+			int fd = open(tmpfile,O_CREAT|O_APPEND|O_RDWR,0777);
 			sock_data_map[sk_fd] = fd;
 		}
 	}

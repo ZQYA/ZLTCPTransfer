@@ -16,6 +16,10 @@ R2D2 : R2D2.o dktool.o $(mp_objects)
 	gcc -o R2D2 R2D2.o dktool.o $(mp_objects) -ggdb -I ../../MMTP
 R2D2.o : R2D2.cpp
 	gcc -c R2D2.cpp -ggdb -I ../../MMTP -ggdb
+ping: ping.o dktool.o brightside.o  $(mp_objects)
+	gcc -o ping ping.o dktool.o brightside.o icmp_protocol.o $(mp_objects) -ggdb -I ../../MMTP
+ping.o : ping.cpp brightside.cpp icmp_protocol.cpp 
+	gcc -c ping.cpp brightside.cpp  icmp_protocol.cpp -ggdb -I ../../MMTP -ggdb
 clean: 
 	-rm *.o
 	-rm R2D2 C3P0

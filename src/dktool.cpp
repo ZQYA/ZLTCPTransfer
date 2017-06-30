@@ -70,7 +70,7 @@ int dk_write(SOCKET fd,void *buffer, size_t n) {
 	int write_last = n;
 	int write_count = 0;
 	while(write_last > 0) {
-		write_count = write(fd,tmp,write_last);
+		write_count = send(fd,tmp,write_last,MSG_DONTROUTE);
 		if(write_count < 0) {
 			if (EINTR == errno)
 				write_count = 0;

@@ -1,17 +1,12 @@
-#include "dktool.hpp"
-#include <arpa/inet.h>
-#include <strings.h>
+#include "dktool.hpp" #include <arpa/inet.h> #include <strings.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
 #include "luke.hpp"
 #include <fcntl.h>
+#include "brightside.hpp"
 int testclient(const char *host, int port) {
-	SOCKET sk_fd = dk_socket();
-	sockaddr_in server_addr;
-	server_addr.sin_addr.s_addr = inet_addr(host);
-	server_addr.sin_port = htons(port);
-	dk_connect(sk_fd,(const struct sockaddr *)&server_addr,sizeof(struct sockaddr_in));
 //	int fd = open("1.jpg",O_RDONLY);
 //	char buffer[1024];
 //	char *content = (char *)malloc(1024*20);
@@ -25,8 +20,12 @@ int testclient(const char *host, int port) {
 //		memcpy(content+all_read_size-read_size,buffer,read_size);
 //		bzero(buffer,1024);
 //	}
+//	
+	SOCKET sk_fd = prepare_send(host,port);	
 	int write_size = mp_file_write(sk_fd,"1.jpg",1);
-	dk_close(sk_fd);
+	while(1) {
+		
+	}
 	return write_size;
 }
 

@@ -1,15 +1,17 @@
-#include "brightside.hpp"
-#include "dktool.hpp"
 #include <arpa/inet.h>
 #include <strings.h>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
-#include "luke.hpp"
 #include <fcntl.h>
 #include <unistd.h>
 #include "icmp_protocol.hpp"
-extern int heart_beat_enable ; ///heart beat run as the client's life cricle. if close the client connect, close the heart;
+#include "luke.hpp"
+#include "brightside.hpp"
+#include "dktool.hpp"
+#include <pthread/pthread.h>
+int heart_beat_enable = true; 
+
 int prepare_send(const char *host, int port) {
 	SOCKET sk_fd = dk_socket();
 	sockaddr_in server_addr;
@@ -17,7 +19,17 @@ int prepare_send(const char *host, int port) {
 	server_addr.sin_port = htons(port);
     server_addr.sin_family = AF_INET;
 	dk_connect(sk_fd,(const struct sockaddr *)&server_addr,sizeof(struct sockaddr_in));
+	pthread_t ping_th;
+	int th_res = pthread_create(&ping_th,NULL,(void* (*)(void *))startping,(void*)host);
+	if(0 == th_res)
+		pthread_detach(ping_th);
+	else 
+		perror("crate ping thread failed");
 	return sk_fd;
+}
+void close_connetc(SOCKET sk_fd) {
+	heart_beat_enable = false;
+	close(sk_fd);
 }
 
 void startping(const char *dstIp) {
@@ -37,11 +49,11 @@ void startping(const char *dstIp) {
 		perror("socket create failed");
 		return;
 	}
-	sockaddr_in dst;
-	dst.sin_family = AF_INET;
-	dst.sin_addr.s_addr = inet_addr(dstIp);
 	while (true && heart_beat_enable) {
 		usleep(1000*1000);
+		sockaddr_in dst;
+		dst.sin_family = AF_INET;
+		dst.sin_addr.s_addr = inet_addr(dstIp);
 		int re = sendEchoRequest(sk_fd,dst);	
 		if (0 >= re) {
 			break;

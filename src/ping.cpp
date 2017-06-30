@@ -1,4 +1,4 @@
 #include "brightside.hpp"
 int main() {
-	startping("169.128.31.11");	
+	startping("127.0.0.1");	
 }

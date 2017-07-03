@@ -36,7 +36,14 @@ void startping(const char *dstIp) {
 	timeval timeout;
 	timeout.tv_sec = 3;
 	timeout.tv_usec = 0;
-	SOCKET sk_fd = socket(AF_INET,SOCK_RAW,IPPROTO_ICMP);
+	SOCKET sk_fd = socket(AF_INET,SOCK_DGRAM,IPPROTO_ICMP);
+    if (sk_fd < 0) {
+        perror("socket create failed");
+        return;
+    }
+//    int flags = fcntl(sk_fd, F_GETFL, 0);
+//    flags &= ~O_NONBLOCK;
+//    fcntl(sk_fd, F_SETFL, flags);
 	int conf_re = setsockopt(sk_fd,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
 	if(-1 == conf_re) {
 		perror("recv conf failed");
@@ -44,17 +51,13 @@ void startping(const char *dstIp) {
 	conf_re = setsockopt(sk_fd,SOL_SOCKET,SO_SNDTIMEO,&timeout,sizeof(timeout));
 	if(-1 == conf_re) {
 		perror("send conf failed");
-	}	
-	if (sk_fd < 0) {
-		perror("socket create failed");
-		return;
 	}
 	while (true && heart_beat_enable) {
 		usleep(1000*1000);
 		sockaddr_in dst;
 		dst.sin_family = AF_INET;
 		dst.sin_addr.s_addr = inet_addr(dstIp);
-		int re = sendEchoRequest(sk_fd,dst);	
+		ssize_t re = sendEchoRequest(sk_fd,dst);
 		if (0 >= re) {
 			break;
 		}

@@ -25,10 +25,9 @@ ssize_t sendEchoRequest(SOCKET sock , sockaddr_in dstIP) {
 	echoRequest.icmpHeader.seq = seq++;
 		
 	ssize_t re = sendto(sock,(char *)&echoRequest,sizeof(echoRequest), 0, (sockaddr*)&dstIP, sizeof(dstIP));
-	
 	if (-1 == re)
 	{
-		perror(" send error \n ");
+		dk_perror(" send error \n ");
 	}
 	return re;
 }
@@ -38,7 +37,7 @@ ssize_t recvEchoReQuest(SOCKET sock,ECHORESPONSE * sponse, sockaddr_in *dstIP) {
 	ssize_t  re = recvfrom(sock, (char *)sponse, sizeof(ECHORESPONSE), 0,(struct sockaddr*)dstIP, &size);
 	if(-1 == re)
 	{
-		perror("recvfrom error");
+		dk_perror("recvfrom error");
 	}
 	return re;
 }

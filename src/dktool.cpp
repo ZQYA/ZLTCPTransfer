@@ -7,7 +7,7 @@ int tcp_backlog_size =  100; /// default listen size
 SOCKET dk_socket() {
 	SOCKET sk_fd = socket(AF_INET,SOCK_STREAM,0);
 	if(-1 == sk_fd) {
-	 	perror("socket build faild");
+	 	dk_perror("socket build faild");
 		return -1;
 	}
 	return sk_fd;
@@ -22,7 +22,7 @@ int dk_bind(SOCKET sk_fd,int port, sockaddr_in *p_server_addr) {
 	server_addr.sin_port = 	htons(port);
 	int bind_stat = bind(sk_fd,(sockaddr *)&server_addr,sizeof(sockaddr_in));
 	if(-1 == bind_stat)	{
-		perror("bind failed");
+		dk_perror("bind failed");
 		return -1;
 	}
 	return 1;
@@ -31,7 +31,7 @@ int dk_bind(SOCKET sk_fd,int port, sockaddr_in *p_server_addr) {
 int dk_listen(SOCKET sk_fd) {
 	int listen_stat = listen(sk_fd,6);
 	if(-1 == listen_stat) {
-		perror("listen failed");
+		dk_perror("listen failed");
 		return -1;
 	}
 	return listen_stat;
@@ -41,7 +41,7 @@ SOCKET dk_accept(SOCKET sk_fd, sockaddr_in *p_server_addr) {
 	socklen_t size = sizeof(sockaddr_in);
 	int accept_stat = accept(sk_fd,(sockaddr*)p_server_addr,&size);
 	if(-1 == accept_stat) {
-		perror("accept failed");
+		dk_perror("accept failed");
 		return -1;
 	}
 	return accept_stat;
@@ -86,14 +86,14 @@ int dk_write(SOCKET fd,void *buffer, size_t n) {
 int dk_connect(SOCKET socket, const struct sockaddr *address,socklen_t address_len) {
 	int con_stat = connect(socket, address,address_len);
 	if (-1 == con_stat) {
-		perror("connection creat failed");	
+		dk_perror("connection creat failed");	
 	}
 	return con_stat;
 }
 void dk_deamonInit() {
 	pid_t pid = fork();
 	if(pid < 0) {
-		perror("fork failed");
+		dk_perror("fork failed");
 		exit(1);	
 	}else if(pid>0){
 		printf("parent will exit");
@@ -101,12 +101,12 @@ void dk_deamonInit() {
 	}else { /// child process start
 		pid_t sid =	setsid();
 		if(sid < 0) {
-			perror("create session faild");
+			dk_perror("create session faild");
 			exit(1);
 		}else  {
 			pid = fork();	
 			if(pid < 0) {
-				perror("child fork child failed");
+				dk_perror("child fork child failed");
 				exit(1);
 			}else if(pid > 0) {
 				printf("child will exit");

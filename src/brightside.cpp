@@ -24,7 +24,7 @@ int prepare_send(const char *host, int port) {
 	if(0 == th_res)
 		pthread_detach(ping_th);
 	else 
-		perror("crate ping thread failed");
+		dk_perror("crate ping thread failed");
 	return sk_fd;
 }
 void close_connetc(SOCKET sk_fd) {
@@ -38,7 +38,7 @@ void startping(const char *dstIp) {
 	timeout.tv_usec = 0;
     SOCKET sk_fd = dk_socket();
     if (sk_fd < 0) {
-        perror("socket create failed");
+        dk_perror("socket create failed");
         return;
     }
 //    int flags = fcntl(sk_fd, F_GETFL, 0);
@@ -46,11 +46,11 @@ void startping(const char *dstIp) {
 //    fcntl(sk_fd, F_SETFL, flags);
 	int conf_re = setsockopt(sk_fd,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
 	if(-1 == conf_re) {
-		perror("recv conf failed");
+		dk_perror("recv conf failed");
 	}	
 	conf_re = setsockopt(sk_fd,SOL_SOCKET,SO_SNDTIMEO,&timeout,sizeof(timeout));
 	if(-1 == conf_re) {
-		perror("send conf failed");
+		dk_perror("send conf failed");
 	}
     bool error = false;
 	while (true && heart_beat_enable) {
@@ -61,7 +61,7 @@ void startping(const char *dstIp) {
         dst.sin_port = htons(10001);
         dk_connect(sk_fd,(const struct sockaddr *)&dst,sizeof(struct sockaddr_in));
         const char *heartbeat = "heartbeat";
-        ssize_t re = mp_write(sk_fd, heartbeat, sizeof(heartbeat), 0, true);
+        ssize_t re = mp_write(sk_fd, heartbeat, strlen(heartbeat), 0, true);
 		if (0 >= re) {
 			break;
 		}
@@ -70,7 +70,7 @@ void startping(const char *dstIp) {
         initilizer_mmtp(&mp);
         int size =  mp_read(sk_fd, &filetype, &mp);
         if (size <= 0) {
-            perror("backfailed");
+            dk_perror("back failed");
         }
         struct mmtp *pmp = &mp;
         destory_mmtp(&pmp);

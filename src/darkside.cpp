@@ -124,7 +124,7 @@ void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
     if (0 == strcmp(message, "heartbeat")) {
         int back_size = mp_write(sk_fd, "heartbeat", sizeof("heartbeat"), 0, 1);
         if (back_size == 0) {
-            perror("back say error");
+            dk_perror("back say error");
         }
     
     }
@@ -138,7 +138,7 @@ void dk_handle_img(mmtp mp, SOCKET sk_fd) {
 	int fd = sock_data_map[sk_fd];
 	int re = write(fd,img_data,mp.content_length);
 	if(re < 0) {
-		perror("write failed");
+		dk_perror("write failed");
 	}
 }
 
@@ -149,7 +149,7 @@ void dk_handle_video(mmtp mp, SOCKET sk_fd) {
 	int fd = sock_data_map[sk_fd];
 	int re = write(fd,img_data,mp.content_length);
 	if(re < 0) {
-		perror("write failed");
+		dk_perror("write failed");
 	}
 }
 void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
@@ -241,7 +241,7 @@ SOCKET create_listen_socks(SOCKET *listen_sock_fd) {
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port = htons(dk_heartbeat_port);
 		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-		int stat = dk_bind(sk_fd,dk_listen_port,&server_addr);
+		int stat = dk_bind(sk_fd,dk_heartbeat_port,&server_addr);
 		dk_check(stat);
 		stat = dk_listen(sk_fd);
 		dk_check(stat);
@@ -255,7 +255,7 @@ SOCKET create_listen_socks(SOCKET *listen_sock_fd) {
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000,int heartbeat_port = 10001) {
-	dk_deamonInit();
+//	dk_deamonInit();
 	dk_start_flag = true;
 	dk_listen_port = listen_port;
 	dk_heartbeat_port = heartbeat_port;

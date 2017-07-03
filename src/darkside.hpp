@@ -5,7 +5,7 @@
 //  	   init work_count size threads
   	   
 
-int dk_start(int worker_count ,  int listen_sock_count , int listen_port) ;
+int dk_start(int worker_count ,  int listen_sock_count , int listen_port,int heartbeat_port) ;
 void dk_stop();
 
 

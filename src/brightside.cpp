@@ -36,7 +36,7 @@ void startping(const char *dstIp) {
 	timeval timeout;
 	timeout.tv_sec = 3;
 	timeout.tv_usec = 0;
-	SOCKET sk_fd = socket(AF_INET,SOCK_DGRAM,IPPROTO_ICMP);
+    SOCKET sk_fd = dk_socket();
     if (sk_fd < 0) {
         perror("socket create failed");
         return;
@@ -52,20 +52,31 @@ void startping(const char *dstIp) {
 	if(-1 == conf_re) {
 		perror("send conf failed");
 	}
+    bool error = false;
 	while (true && heart_beat_enable) {
 		usleep(1000*1000);
 		sockaddr_in dst;
 		dst.sin_family = AF_INET;
 		dst.sin_addr.s_addr = inet_addr(dstIp);
-		ssize_t re = sendEchoRequest(sk_fd,dst);
+        dst.sin_port = htons(10001);
+        dk_connect(sk_fd,(const struct sockaddr *)&dst,sizeof(struct sockaddr_in));
+        const char *heartbeat = "heartbeat";
+        ssize_t re = mp_write(sk_fd, heartbeat, sizeof(heartbeat), 0, true);
 		if (0 >= re) {
 			break;
 		}
-		ECHORESPONSE sponse;
-		re = recvEchoReQuest(sk_fd,&sponse,&dst);
+        int filetype = 0;
+        struct mmtp mp;
+        initilizer_mmtp(&mp);
+        int size =  mp_read(sk_fd, &filetype, &mp);
+        if (size <= 0) {
+            perror("backfailed");
+        }
+        struct mmtp *pmp = &mp;
+        destory_mmtp(&pmp);
 		if (0 >= re) {
+            error = true;
 			break;
 		}
-		printf("from %s : size =32 time =%ds TTL=%d \n",inet_ntoa(dst.sin_addr),sponse.echoRequest.time,sponse.ipHeader.ttl);
 	}
 }

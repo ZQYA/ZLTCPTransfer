@@ -19,6 +19,7 @@
 
 /// vars
 int dk_listen_port = 8000; // server default port
+int dk_heartbeat_port = 10001; //server's life port
 size_t dk_accept_max_count = 1;
 bool dk_start_flag = false;// indicate server running state 
 volatile sig_atomic_t sig_status;
@@ -28,6 +29,7 @@ pthread_cond_t receive_queue_full_sig = PTHREAD_COND_INITIALIZER;
 pthread_cond_t receive_queue_empty_sig = PTHREAD_COND_INITIALIZER;
 std::list<SOCKET> sock_list;
 SOCKET  listen_sock_fd;
+SOCKET  heartbeat_sock_fd;
 
 std::map<SOCKET,int>sock_data_map; 
 
@@ -100,12 +102,15 @@ void dk_master_thread(void) {
 	while(dk_start_flag){
 		FD_ZERO(&read_set);
 		FD_SET(listen_sock_fd,&read_set);
+		FD_SET(heartbeat_sock_fd,&read_set);
 		tv.tv_sec = 0;
 		tv.tv_usec = 200 * 1000;
 		if(select(max_fd,&read_set,NULL,NULL,&tv)>0) {
 			if(dk_start_flag&&FD_ISSET(listen_sock_fd,&read_set)) {
 				accecpt_new_connection(listen_sock_fd);										
-			}	
+			}else if (dk_start_flag && FD_ISSET(heartbeat_sock_fd,&read_set)) {
+				accecpt_new_connection(heartbeat_sock_fd);
+			}
 		}
 	}
 }
@@ -116,6 +121,13 @@ void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
 	printf("%s",message);
 	bzero(message,mp.content_length+1);
 	free(message);
+    if (0 == strcmp(message, "heartbeat")) {
+        int back_size = mp_write(sk_fd, "heartbeat", sizeof("heartbeat"), 0, 1);
+        if (back_size == 0) {
+            perror("back say error");
+        }
+    
+    }
 }
 
 void dk_handle_img(mmtp mp, SOCKET sk_fd) {
@@ -210,7 +222,7 @@ void dk_worker_thread(void) {
 }
 
 
-SOCKET create_listen_socks() {
+SOCKET create_listen_socks(SOCKET *listen_sock_fd) {
 	SOCKET sk_fd= dk_socket(); 		
 	if(sk_fd>0) {
 		sockaddr_in server_addr;
@@ -222,7 +234,19 @@ SOCKET create_listen_socks() {
 		stat = dk_listen(sk_fd);
 		dk_check(stat);
 	}
-	return sk_fd;
+	SOCKET result = sk_fd;
+	sk_fd = dk_socket();
+	if(sk_fd>0) {
+		sockaddr_in server_addr;
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_port = htons(dk_heartbeat_port);
+		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+		int stat = dk_bind(sk_fd,dk_listen_port,&server_addr);
+		dk_check(stat);
+		stat = dk_listen(sk_fd);
+		dk_check(stat);
+	}
+	return result;
 }
 
 
@@ -230,12 +254,13 @@ SOCKET create_listen_socks() {
 //  param: work_count  worker thread count
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
-int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000) {
+int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000,int heartbeat_port = 10001) {
 	dk_deamonInit();
 	dk_start_flag = true;
 	dk_listen_port = listen_port;
+	dk_heartbeat_port = heartbeat_port;
 	dk_accept_max_count = listen_sock_count;
-	listen_sock_fd = create_listen_socks();
+	listen_sock_fd = create_listen_socks(&heartbeat_sock_fd);
 	//for(int i = 0; i < worker_count; ++i)
 		dk_thread_func(dk_worker_thread);
 	int master_stat = dk_thread_func(dk_master_thread,false);	

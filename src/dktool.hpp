@@ -21,4 +21,5 @@ int dk_write(SOCKET fd,void *buffer, size_t n);
 int dk_connect(SOCKET socket, const struct sockaddr *address,socklen_t address_len);
 /// start deamon process
 void dk_deamonInit();
+#define dk_perror(fmt,...) printf("%s:%d",__file__,__line__);perror(fmt,__VA_ARGS__);
 #define dk_close(fd) close(fd)

@@ -119,8 +119,6 @@ void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
 	char *message = (char *)malloc(mp.content_length+1);
 	memcpy(message,mp.content,mp.content_length);
 	printf("%s",message);
-	bzero(message,mp.content_length+1);
-	free(message);
     if (0 == strcmp(message, "heartbeat")) {
         int back_size = mp_write(sk_fd, "heartbeat", sizeof("heartbeat"), 0, 1);
         if (back_size == 0) {
@@ -128,6 +126,8 @@ void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
         }
     
     }
+	bzero(message,mp.content_length+1);
+	free(message);
 }
 
 void dk_handle_img(mmtp mp, SOCKET sk_fd) {
@@ -222,7 +222,7 @@ void dk_worker_thread(void) {
 }
 
 
-SOCKET create_listen_socks(SOCKET *listen_sock_fd) {
+SOCKET create_listen_socks(SOCKET *heartbeat_sock_fd) {
 	SOCKET sk_fd= dk_socket(); 		
 	if(sk_fd>0) {
 		sockaddr_in server_addr;
@@ -244,6 +244,7 @@ SOCKET create_listen_socks(SOCKET *listen_sock_fd) {
 		int stat = dk_bind(sk_fd,dk_heartbeat_port,&server_addr);
 		dk_check(stat);
 		stat = dk_listen(sk_fd);
+		*heartbeat_sock_fd = sk_fd;
 		dk_check(stat);
 	}
 	return result;

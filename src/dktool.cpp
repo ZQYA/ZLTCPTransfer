@@ -54,6 +54,7 @@ int dk_read(SOCKET fd,void *buffer, size_t n) {
 	while (read_last > 0) {
 		read_cout = read(fd,tmp,read_last);
 		if (read_cout <= 0 ) {
+			dk_perror("read_failed");
 			if (EINTR==errno)
 				read_cout = 0;
 			else 	

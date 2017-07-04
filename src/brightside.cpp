@@ -52,31 +52,29 @@ void startping(const char *dstIp) {
 	if(-1 == conf_re) {
 		dk_perror("send conf failed");
 	}
-    bool error = false;
-	while (true && heart_beat_enable) {
+    sockaddr_in dst;
+    dst.sin_family = AF_INET;
+    dst.sin_addr.s_addr = inet_addr(dstIp);
+    dst.sin_port = htons(7777);
+    ssize_t re = dk_connect(sk_fd,(const struct sockaddr *)&dst,sizeof(struct sockaddr_in));
+	while (re!=-1 && heart_beat_enable) {
 		usleep(1000*1000);
-		sockaddr_in dst;
-		dst.sin_family = AF_INET;
-		dst.sin_addr.s_addr = inet_addr(dstIp);
-        dst.sin_port = htons(10001);
-        dk_connect(sk_fd,(const struct sockaddr *)&dst,sizeof(struct sockaddr_in));
         const char *heartbeat = "heartbeat";
-        ssize_t re = mp_write(sk_fd, heartbeat, strlen(heartbeat), 0, true);
+        re = mp_write(sk_fd, heartbeat, strlen(heartbeat)+1, 0, true);
+        re = mp_write(sk_fd, heartbeat, strlen(heartbeat)+1, 0, true);
 		if (0 >= re) {
-			break;
+            re = -1;
+			continue;
 		}
         int filetype = 0;
         struct mmtp mp;
         initilizer_mmtp(&mp);
-        int size =  mp_read(sk_fd, &filetype, &mp);
-        if (size <= 0) {
+        re =  mp_read(sk_fd, &filetype, &mp);
+        if (re <= 0) {
+            re = -1;
             dk_perror("back failed");
         }
         struct mmtp *pmp = &mp;
         destory_mmtp(&pmp);
-		if (0 >= re) {
-            error = true;
-			break;
-		}
 	}
 }

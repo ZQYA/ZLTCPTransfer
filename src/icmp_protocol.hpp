@@ -24,4 +24,3 @@ typedef struct _ECHORESPONSE {
 
 ssize_t sendEchoRequest(SOCKET sock , sockaddr_in detIP);
 ssize_t recvEchoReQuest(SOCKET sock,ECHORESPONSE * sponse, sockaddr_in *dstIP);
-u_short checksum(u_short *buffer, int len);

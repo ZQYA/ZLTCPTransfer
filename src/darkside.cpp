@@ -12,6 +12,8 @@
 #include <fcntl.h>
 #include <map>
 #include <algorithm>
+#include <fcntl.h>
+#include <sys/mman.h>
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants

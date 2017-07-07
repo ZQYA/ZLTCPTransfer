@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <map>
+#include <algorithm>
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants
@@ -97,7 +98,7 @@ void dk_master_thread(void) {
 #endif
 	fd_set read_set;
 	struct timeval tv;
-	int max_fd = listen_sock_fd+1;	
+	int max_fd = std::max(listen_sock_fd,heartbeat_sock_fd)+1;	
 //TODO: multple I/O need support.
 	while(dk_start_flag){
 		FD_ZERO(&read_set);

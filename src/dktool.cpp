@@ -47,10 +47,10 @@ SOCKET dk_accept(SOCKET sk_fd, sockaddr_in *p_server_addr) {
 	return accept_stat;
 }
 
-int dk_read(SOCKET fd,void *buffer, size_t n) {		
+ssize_t dk_read(SOCKET fd,void *buffer, size_t n) {
 	char *tmp = (char *)buffer;
-	int read_last = n;
-	int read_cout = 0;
+	size_t read_last = n;
+	ssize_t read_cout = 0;
 	while (read_last > 0) {
 		read_cout = read(fd,tmp,read_last);
 		if (read_cout <= 0 ) {
@@ -66,10 +66,10 @@ int dk_read(SOCKET fd,void *buffer, size_t n) {
 	return n-read_last; 
 }
 
-int dk_write(SOCKET fd,void *buffer, size_t n) {
+ssize_t dk_write(SOCKET fd,void *buffer, size_t n) {
 	char *tmp = (char *)buffer;
-	int write_last = n;
-	int write_count = 0;
+	size_t write_last = n;
+	ssize_t write_count = 0;
 	while(write_last > 0) {
 		write_count = send(fd,tmp,write_last,MSG_DONTROUTE);
 		if(write_count < 0) {

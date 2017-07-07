@@ -10,9 +10,9 @@
 #include "brightside.hpp"
 #include "dktool.hpp"
 #include <pthread/pthread.h>
-int heart_beat_enable = true; 
-
-int prepare_send(const char *host, int port) {
+int heartbeat_enable = true;
+void (*heartbeat_faild_handler)(void) = NULL ;
+int prepare_send(const char *host, int port, void (*func)(void)) {
 	SOCKET sk_fd = dk_socket();
 	sockaddr_in server_addr;
 	server_addr.sin_addr.s_addr = inet_addr(host);
@@ -20,6 +20,7 @@ int prepare_send(const char *host, int port) {
     server_addr.sin_family = AF_INET;
 	dk_connect(sk_fd,(const struct sockaddr *)&server_addr,sizeof(struct sockaddr_in));
 	pthread_t ping_th;
+    heartbeat_faild_handler = func;
 	int th_res = pthread_create(&ping_th,NULL,(void* (*)(void *))startping,(void*)host);
 	if(0 == th_res)
 		pthread_detach(ping_th);
@@ -28,7 +29,7 @@ int prepare_send(const char *host, int port) {
 	return sk_fd;
 }
 void close_connetc(SOCKET sk_fd) {
-	heart_beat_enable = false;
+	heartbeat_enable = false;
 	close(sk_fd);
 }
 
@@ -56,25 +57,28 @@ void startping(const char *dstIp) {
     dst.sin_family = AF_INET;
     dst.sin_addr.s_addr = inet_addr(dstIp);
     dst.sin_port = htons(7777);
-    ssize_t re = dk_connect(sk_fd,(const struct sockaddr *)&dst,sizeof(struct sockaddr_in));
-	while (re!=-1 && heart_beat_enable) {
+    int retryTime = 0;
+    ssize_t co = dk_connect(sk_fd,(const struct sockaddr *)&dst,sizeof(struct sockaddr_in));
+	while (co!=-1 && heartbeat_enable && retryTime<10) {
 		usleep(1000*1000);
         const char *heartbeat = "heartbeat";
-        re = mp_write(sk_fd, heartbeat, strlen(heartbeat)+1, 0, true);
-        re = mp_write(sk_fd, heartbeat, strlen(heartbeat)+1, 0, true);
-		if (0 >= re) {
-            re = -1;
+        ssize_t  wr = mp_write(sk_fd, heartbeat, strlen(heartbeat)+1, 0, true);
+		if (0 >= wr) {
+            ++retryTime;
 			continue;
 		}
         int filetype = 0;
         struct mmtp mp;
         initilizer_mmtp(&mp);
-        re =  mp_read(sk_fd, &filetype, &mp);
+        ssize_t re =  mp_read(sk_fd, &filetype, &mp);
         if (re <= 0) {
-            re = -1;
+            ++retryTime;
             dk_perror("back failed");
         }
         struct mmtp *pmp = &mp;
         destory_mmtp(&pmp);
 	}
+    if (heartbeat_enable&&(co==-1||retryTime!=0) && heartbeat_faild_handler!=NULL) {
+        heartbeat_faild_handler();
+    }
 }

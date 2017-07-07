@@ -156,9 +156,12 @@ void dk_handle_video(mmtp mp, SOCKET sk_fd) {
 	}
 }
 void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
-	if(sock_data_map.find(sk_fd) == sock_data_map.end() || mp.is_first) {
+	if((sock_data_map.find(sk_fd) == sock_data_map.end() || mp.is_first )&&0 == mp.type) {
 		const char *home = getenv("HOME");
-		char *tmpfile = strdup(tempnam(home, mp.type==0?"msg":(mp.type==1?"img":"video")));
+		char *home_path = (char *)malloc(1024);
+		strcat(home_path,home);
+		strcat(home_path,mp.options);
+		char *tmpfile = strdup(tempnam(home_path, mp.type==0?"msg":(mp.type==1?"img":"video")));
 		if(mp.type!= 0) {
 			int fd = open(tmpfile,O_CREAT|O_APPEND|O_RDWR,0777);
 			sock_data_map[sk_fd] = fd;
@@ -275,7 +278,7 @@ void* build_map_ptr() {
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000,int heartbeat_port = 10001) {
-	dk_deamonInit();
+//	dk_deamonInit();
 	void *ptr = build_map_ptr();
 	dk_start_flag = true;
 	dk_listen_port = listen_port;

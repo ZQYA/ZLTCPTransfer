@@ -62,7 +62,7 @@ void startping(const char *dstIp) {
 	while (co!=-1 && heartbeat_enable && retryTime<10) {
 		usleep(1000*1000);
         const char *heartbeat = "heartbeat";
-        ssize_t  wr = mp_write(sk_fd, heartbeat, strlen(heartbeat)+1, 0, true);
+        ssize_t  wr = mp_write(sk_fd, heartbeat, strlen(heartbeat)+1, 0, true,NULL);
 		if (0 >= wr) {
             ++retryTime;
 			continue;

@@ -121,7 +121,7 @@ void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
 	memcpy(message,mp.content,mp.content_length);
 	printf("%s",message);
     if (0 == strcmp(message, "heartbeat")) {
-        int back_size = mp_write(sk_fd, "heartbeat", sizeof("heartbeat"), 0, 1);
+        int back_size = mp_write(sk_fd, "heartbeat", sizeof("heartbeat"), 0, 1,NULL);
         if (back_size == 0) {
             dk_perror("back say error");
         }

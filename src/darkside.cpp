@@ -251,13 +251,30 @@ SOCKET create_listen_socks(SOCKET *heartbeat_sock_fd) {
 	return result;
 }
 
+/// create mem copy ptr for the performance consideration
+/// now server just operate the maped file's mem ptr to access file
+void* build_map_ptr() {		
+	const char* home_file_path = getenv("HOME");
+	const char *filepath = "/device_ip_pair.log";	
+	char *map_file_path= (char *)malloc(1024);
+	strcat(map_file_path,home_file_path);
+	strcat(map_file_path,filepath);
+	int map_fd = open(map_file_path,O_CREAT|O_RDWR,0777);
+	if(-1 == map_fd) {
+		perror("file des create failed");
+	}
+	void *ptr = mmap(NULL,4*1024*8,PROT_WRITE|PROT_READ,MAP_SHARED,map_fd,0);
+	return ptr;
+}
+
 
 /// start tcp_server
 //  param: work_count  worker thread count
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000,int heartbeat_port = 10001) {
-//	dk_deamonInit();
+	dk_deamonInit();
+	void *ptr = build_map_ptr();
 	dk_start_flag = true;
 	dk_listen_port = listen_port;
 	dk_heartbeat_port = heartbeat_port;

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants
@@ -123,7 +124,7 @@ void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
 	memcpy(message,mp.content,mp.content_length);
 	printf("%s",message);
     if (0 == strcmp(message, "heartbeat")) {
-        int back_size = mp_write(sk_fd, "heartbeat", sizeof("heartbeat"), 0, 1,NULL);
+        ssize_t back_size = mp_write(sk_fd, "heartbeat", sizeof("heartbeat"), 0, 1,NULL);
         if (back_size == 0) {
             dk_perror("back say error");
         }
@@ -139,7 +140,7 @@ void dk_handle_img(mmtp mp, SOCKET sk_fd) {
 	memcpy(img_data,mp.content,mp.content_length);
 	
 	int fd = sock_data_map[sk_fd];
-	int re = write(fd,img_data,mp.content_length);
+	ssize_t re = write(fd,img_data,mp.content_length);
 	if(re < 0) {
 		dk_perror("write failed");
 	}
@@ -150,18 +151,30 @@ void dk_handle_video(mmtp mp, SOCKET sk_fd) {
 	bzero(img_data,mp.content_length);
 	memcpy(img_data,mp.content,mp.content_length);
 	int fd = sock_data_map[sk_fd];
-	int re = write(fd,img_data,mp.content_length);
+	ssize_t re = write(fd,img_data,mp.content_length);
 	if(re < 0) {
 		dk_perror("write failed");
 	}
 }
 void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
-	if((sock_data_map.find(sk_fd) == sock_data_map.end() || mp.is_first )&&0 == mp.type) {
+	if((sock_data_map.find(sk_fd) == sock_data_map.end() || mp.is_first )) {
 		const char *home = getenv("HOME");
 		char *home_path = (char *)malloc(1024);
 		strcat(home_path,home);
-		strcat(home_path,mp.options);
-		char *tmpfile = strdup(tempnam(home_path, mp.type==0?"msg":(mp.type==1?"img":"video")));
+		if(mp.type!=0) {
+			strcat(home_path,"/");
+			strcat(home_path,mp.options);
+		}
+		if(0 != access(home_path,F_OK)) {
+			int res = mkdir(home_path, 0777);
+			if (res!=0) {
+				dk_perror("create dir field");
+			}
+		}
+		strcat(home_path,0==mp.type?"/log":(1==mp.type?"/img":"/vdo"));
+		strcat(home_path,"XXXXXXXX");
+		char *tmpfile = strdup(mktemp(home_path)); 
+		free(home_path);
 		if(mp.type!= 0) {
 			int fd = open(tmpfile,O_CREAT|O_APPEND|O_RDWR,0777);
 			sock_data_map[sk_fd] = fd;

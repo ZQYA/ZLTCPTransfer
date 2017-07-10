@@ -24,6 +24,7 @@ int prepare_send(const char *host, int port, void (*func)(void)) {
 	int th_res = pthread_create(&ping_th,NULL,(void* (*)(void *))startping,(void*)host);
 	if(0 == th_res)
 		pthread_detach(ping_th);
+        
 	else 
 		dk_perror("crate ping thread failed");
 	return sk_fd;

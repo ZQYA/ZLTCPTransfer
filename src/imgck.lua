@@ -3,6 +3,11 @@
 -- this program check the file is a valid jpg or png file 
 --------------------------------------------------------------------------------
 
+
+--- dependen on the luafilesystem lib
+--- use "luarocks install luafilesytem" to install 
+require("lfs")
+
 local function print_binary(str,size) 
 	for i = 1,size do 
 		local v = str:byte(i)
@@ -94,4 +99,14 @@ local function checkimg(filepath)
 		return false
 	end
 end
+
+local function checkfileinpath(filepath,handler)
+	for file in lfs.dir(filepath) do
+		if file ~= "." and file ~=".." then
+			local attr  = lfs.attributes(filepath..'/'..file);
+		end
+	end
+end
+
+checkfileinpath("/")
 

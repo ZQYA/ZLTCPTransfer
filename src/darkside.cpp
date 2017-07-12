@@ -15,6 +15,10 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include "lualib.h"
+#include "lua_src/src/lua.h"
+#include "lua_src/src/lauxlib.h"
+#include "lua_src/src/lualib.h"
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants
@@ -292,6 +296,8 @@ void* build_map_ptr() {
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000,int heartbeat_port = 10001) {
 //	dk_deamonInit();
+	lua_State *L = luaL_newstate();
+	luaL_openlibs(L);
 	void *ptr = build_map_ptr();
 	dk_start_flag = true;
 	dk_listen_port = listen_port;
@@ -307,3 +313,4 @@ int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port =
 void dk_stop() {
 	dk_start_flag = false;
 } 
+

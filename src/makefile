@@ -1,15 +1,19 @@
 .PHONY : C3P0 R2D2 clean
 mp_objects = $(patsubst %.cpp,%.o,$(wildcard ../../MMTP/*.cpp)) 
 mp_sources = $(wildcard ../../MMTP/*.cpp)
-VPATH = /Users/quanzhou/oscode/MMTP 
-C3P0 : C3P0.o dktool.o darkside.o $(mp_objects)
-	gcc -o C3P0 C3P0.o dktool.o darkside.o $(mp_objects) -ggdb -I ../../MMTP -l stdc++
-C3P0.o : C3P0.cpp
-	gcc -c C3P0.cpp darkside.cpp dktool.cpp -ggdb -I ../../MMTP -l stdc++
+mp_lua_source = $(wildcard lua_src/src/*.c)
+mp_lua_objects = $(patsubst %.c,%.o,$(mp_lua_source))
+VPATH = /Users/quanzhou/oscode/MMTP:lua_src/src 
+C3P0 : C3P0.o dktool.o darkside.o $(mp_objects) $(mp_lua_objects)
+	gcc -o C3P0 C3P0.o dktool.o darkside.o $(mp_objects) $(mp_lua_objects) -ggdb -I ../../MMTP -l stdc++
+C3P0.o : C3P0.cpp $(mp_lua_objects) 
+	gcc -c $(mp_lua_objects) C3P0.cpp darkside.cpp dktool.cpp -ggdb -I ../../MMTP -l stdc++
 dktool.o : dktool.cpp
 	gcc  -c dktool.cpp  -ggdb
-darkside.o : darkside.cpp
+darkside.o : darkside.cpp 
 	gcc  -c darkside.cpp -I ../../MMTP -ggdb -l stdc++
+$(mp_lua_objects) : $(mp_lua_source)
+	$(foreach f,$(mp_lua_source),gcc -x c++ -c $(f) -o $(patsubst %c,%o,$(f));)
 $(mp_objects) : $(mp_sources)
 	gcc -o $@ -c $^  -I ./ -ggdb
 R2D2 : R2D2.o dktool.o brightside.o icmp_protocol.o $(mp_objects)

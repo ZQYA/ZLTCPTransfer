@@ -15,10 +15,12 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include "lualib.h"
+extern "C" { 
 #include "lua_src/src/lua.h"
 #include "lua_src/src/lauxlib.h"
 #include "lua_src/src/lualib.h"
+}
+#include <iostream>
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants
@@ -225,7 +227,8 @@ void dk_worker_thread(void) {
 						struct mmtp mp;
 						initilizer_mmtp(&mp);
 						int size = mp_read(sk_fd,0,&mp);
-						if(size == 0) {
+						if(size <= 0) {
+							std::cerr<<"file read end"<<std::endl;
 							f_ds[f_di++] = sk_fd;		
 						}
 						dk_handle_mmtp(mp, sk_fd);
@@ -295,16 +298,21 @@ void* build_map_ptr() {
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000,int heartbeat_port = 10001) {
-//	dk_deamonInit();
+	dk_deamonInit();
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
+	int re = luaL_loadfile(L,"./imgck.lua")||lua_pcall(L,0,0,0);
+	if(re) {
+		const char *err = lua_tostring(L,-1);
+		printf("load lua error:%s",err);
+	}
 	void *ptr = build_map_ptr();
 	dk_start_flag = true;
 	dk_listen_port = listen_port;
 	dk_heartbeat_port = heartbeat_port;
 	dk_accept_max_count = listen_sock_count;
 	listen_sock_fd = create_listen_socks(&heartbeat_sock_fd);
-	//for(int i = 0; i < worker_count; ++i)
+	for(int i = 0; i < worker_count; ++i)
 		dk_thread_func(dk_worker_thread);
 	int master_stat = dk_thread_func(dk_master_thread,false);	
 	return master_stat;

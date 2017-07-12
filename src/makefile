@@ -13,7 +13,7 @@ dktool.o : dktool.cpp
 darkside.o : darkside.cpp 
 	gcc  -c darkside.cpp -I ../../MMTP -ggdb -l stdc++
 $(mp_lua_objects) : $(mp_lua_source)
-	$(foreach f,$(mp_lua_source),gcc -x c++ -c $(f) -o $(patsubst %c,%o,$(f));)
+	$(foreach f,$(mp_lua_source),gcc -DLUA_USE_POSIX -DLUA_USE_DLOPEN -c $(f) -o $(patsubst %c,%o,$(f));)
 $(mp_objects) : $(mp_sources)
 	gcc -o $@ -c $^  -I ./ -ggdb
 R2D2 : R2D2.o dktool.o brightside.o icmp_protocol.o $(mp_objects)

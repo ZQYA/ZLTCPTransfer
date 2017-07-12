@@ -150,7 +150,7 @@
 
 #else				/* }{ */
 
-#define LUA_API		extern 
+#define LUA_API		extern
 
 #endif				/* } */
 

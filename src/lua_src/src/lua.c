@@ -475,5 +475,3 @@ static int pmain (lua_State *L) {
   lua_pushboolean(L, 1);  /* signal no errors */
   return 1;
 }
-
-

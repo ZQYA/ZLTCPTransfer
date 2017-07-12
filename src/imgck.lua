@@ -7,6 +7,7 @@
 --- dependen on the luafilesystem lib
 --- use "luarocks install luafilesytem" to install 
 require("lfs")
+require("tb")
 
 local function print_binary(str,size) 
 	for i = 1,size do 
@@ -103,10 +104,16 @@ end
 local function checkfileinpath(filepath,handler)
 	for file in lfs.dir(filepath) do
 		if file ~= "." and file ~=".." then
-			local attr  = lfs.attributes(filepath..'/'..file);
+			local attr  = lfs.attributes(filepath..'/'..file)
+			if attr["mode"]=="file" then 
+				print(file)
+			end 
+			--attr = tb.new(attr)
+			--print(attr);
 		end
 	end
 end
 
-checkfileinpath("/")
+--local homepath = os.getenv("HOME")
+--checkfileinpath(homepath,handler)
 

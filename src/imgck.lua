@@ -91,13 +91,13 @@ end
 --------------------------------------------------------------------------------
 -- check is a file is a img
 --------------------------------------------------------------------------------
-local function checkimg(filepath) 
+function checkimg(filepath) 
 	if checkjpg(filepath) then
-		return true
+		return 1 
 	elseif checkpng(filepath) then
-		return true 
+		return 1 
 	else 
-		return false
+		return 0
 	end
 end
 

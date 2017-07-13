@@ -33,6 +33,7 @@ int dk_heartbeat_port = 10001; //server's life port
 size_t dk_accept_max_count = 1;
 bool dk_start_flag = false;// indicate server running state 
 volatile sig_atomic_t sig_status;
+lua_State *L;
 pthread_mutex_t receive_queue_full_lock = PTHREAD_MUTEX_INITIALIZER; 
 pthread_mutex_t receive_queue_empty_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t receive_queue_full_sig = PTHREAD_COND_INITIALIZER;
@@ -41,7 +42,12 @@ std::list<SOCKET> sock_list;
 SOCKET  listen_sock_fd;
 SOCKET  heartbeat_sock_fd;
 
-std::map<SOCKET,int>sock_data_map; 
+typedef struct dk_file_path {
+	int fd;
+	char *filename;
+}dk_file_path;
+
+std::map<SOCKET,dk_file_path>sock_data_map; 
 
 #define DK_THREAD 
 #ifndef DK_THREAD 
@@ -140,15 +146,23 @@ void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
 	free(message);
 }
 
+bool check_image_in_path(lua_State *L,const char *file_path);
 void dk_handle_img(mmtp mp, SOCKET sk_fd) {
 	char *img_data = (char *)malloc(mp.content_length);		
 	bzero(img_data,mp.content_length);
 	memcpy(img_data,mp.content,mp.content_length);
 	
-	int fd = sock_data_map[sk_fd];
+	int fd = sock_data_map[sk_fd].fd;
 	ssize_t re = write(fd,img_data,mp.content_length);
 	if(re < 0) {
 		dk_perror("write failed");
+	}else {
+		if(mp.is_end) {
+			bool isimg = check_image_in_path(L,sock_data_map[sk_fd].filename);			
+			if(!isimg) {
+				printf("check img failed");	
+			}
+		}
 	}
 }
 
@@ -156,7 +170,7 @@ void dk_handle_video(mmtp mp, SOCKET sk_fd) {
 	char *img_data = (char *)malloc(mp.content_length);		
 	bzero(img_data,mp.content_length);
 	memcpy(img_data,mp.content,mp.content_length);
-	int fd = sock_data_map[sk_fd];
+	int fd = sock_data_map[sk_fd].fd;
 	ssize_t re = write(fd,img_data,mp.content_length);
 	if(re < 0) {
 		dk_perror("write failed");
@@ -166,6 +180,7 @@ void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
 	if((sock_data_map.find(sk_fd) == sock_data_map.end() || mp.is_first )) {
 		const char *home = getenv("HOME");
 		char *home_path = (char *)malloc(1024);
+		bzero(home_path,1024);
 		strcat(home_path,home);
 		if(mp.type!=0) {
 			strcat(home_path,"/");
@@ -183,7 +198,10 @@ void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
 		free(home_path);
 		if(mp.type!= 0) {
 			int fd = open(tmpfile,O_CREAT|O_APPEND|O_RDWR,0777);
-			sock_data_map[sk_fd] = fd;
+			dk_file_path fp = {fd,tmpfile};
+			sock_data_map[sk_fd] = fp;
+		}else {
+			free(tmpfile);
 		}
 	}
 	switch (mp.type) {
@@ -230,8 +248,9 @@ void dk_worker_thread(void) {
 						if(size <= 0) {
 							std::cerr<<"file read end"<<std::endl;
 							f_ds[f_di++] = sk_fd;		
+						}else {
+							dk_handle_mmtp(mp, sk_fd);
 						}
-						dk_handle_mmtp(mp, sk_fd);
 //						FD_CLR(sk_fd,&read_set);
 					}
 				}
@@ -298,8 +317,8 @@ void* build_map_ptr() {
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000,int heartbeat_port = 10001) {
-	dk_deamonInit();
-	lua_State *L = luaL_newstate();
+//	dk_deamonInit();
+	L = luaL_newstate();
 	luaL_openlibs(L);
 	int re = luaL_loadfile(L,"./imgck.lua")||lua_pcall(L,0,0,0);
 	if(re) {
@@ -317,19 +336,16 @@ int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port =
 	int master_stat = dk_thread_func(dk_master_thread,false);	
 	return master_stat;
 }
-bool check_image_in_path(lua_State *L,char *file_path) {
-	//lua_getglobal(L,"imgchk");
-	//luaL_pushstring(L,file_path);
-	//if(lua_pcall(L,1,1,0)!=0) {
-	//   std::cerr<<"lua function invoke failed"<<std::endl;
-	//}else {
-	//   if(!lua_isboolean(L,-1))
-//		std::cerr<<"imgchk is not return as a boolean"<<std::endl;
-//	}
-//	bool res = lua_toboolean(L,-1);
-//	lua_pop(L,-1);
-	//return res;
-	return 1;
+bool check_image_in_path(lua_State *L,const char *file_path) {
+	lua_getglobal(L,"checkimg");
+	lua_pushstring(L,file_path);
+	if(lua_pcall(L,1,1,0)!=0) {
+		printf("lua func invoke failed:%s\n",lua_tostring(L,-1));
+	}else if(lua_isnumber(L,-1)){
+		int isimg = lua_toboolean(L,-1);
+		return isimg;
+	}
+	return false;
 }
 
 void dk_stop() {

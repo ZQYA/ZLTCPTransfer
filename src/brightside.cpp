@@ -12,6 +12,7 @@
 #include <pthread/pthread.h>
 int heartbeat_enable = true;
 void (*heartbeat_faild_handler)(void) = NULL ;
+void startping(const char *dstIp);
 int prepare_send(const char *host, int port, void (*func)(void)) {
 	SOCKET sk_fd = dk_socket();
 	sockaddr_in server_addr;
@@ -75,6 +76,8 @@ void startping(const char *dstIp) {
         if (re <= 0) {
             ++retryTime;
             dk_perror("back failed");
+        }else {
+            retryTime = 0;
         }
         struct mmtp *pmp = &mp;
         destory_mmtp(&pmp);

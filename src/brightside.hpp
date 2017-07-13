@@ -12,4 +12,4 @@ extern int heart_beat_enable ; ///heart beat run as the client's life cricle. if
 /// you can reconfig by change the source code
 int prepare_send(const char *host, int port, void (*func)(void));
 void close_connetc(SOCKET sk_fd);
-void startping(const char *dstIp);
+//void startping(const char *dstIp);

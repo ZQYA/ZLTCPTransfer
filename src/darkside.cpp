@@ -318,17 +318,18 @@ int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port =
 	return master_stat;
 }
 bool check_image_in_path(lua_State *L,char *file_path) {
-	lua_getglobal(L,"imgchk");
-	luaL_pushstring(L,file_path);
-	if(lua_pcall(L,1,1,0)!=0) {
-	   std::cerr<<"lua function invoke failed"<<std::endl;
-	}else {
-	   if(!lua_isboolean(L,-1))
-		std::cerr<<"imgchk is not return as a boolean"<<std::endl;
-	}
-	bool res = lua_toboolean(L,-1);
-	lua_pop(L,-1);
-	return res;
+	//lua_getglobal(L,"imgchk");
+	//luaL_pushstring(L,file_path);
+	//if(lua_pcall(L,1,1,0)!=0) {
+	//   std::cerr<<"lua function invoke failed"<<std::endl;
+	//}else {
+	//   if(!lua_isboolean(L,-1))
+//		std::cerr<<"imgchk is not return as a boolean"<<std::endl;
+//	}
+//	bool res = lua_toboolean(L,-1);
+//	lua_pop(L,-1);
+	//return res;
+	return 1;
 }
 
 void dk_stop() {

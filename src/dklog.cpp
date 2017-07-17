@@ -107,7 +107,7 @@ dk_output_stream LOG(int level) {
 	}	
 }
 
-int main(int args , const char **argv) {
-    LOG_WARNING<<"test warning"<<3<<"nuil"<<std::endl;
-    return 0;
-}
+//int main(int args , const char **argv) {
+//   LOG_WARNING<<"test warning"<<3<<"nuil"<<std::endl;
+//   return 0;
+//}

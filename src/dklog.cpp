@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fstream>
+#include <ostream>
+#include <map>
 /********************************************************************************
  * define a class to process the log
  * every level has a file outputstream , higher level will cover the lower level's 
@@ -13,38 +15,63 @@
  * the class overwrite the << operator, so you can use << "" << "" as a link 
 ********************************************************************************/
 class dk_output_stream {
+public:
+	dk_output_stream(int _level):level(_level) {
+	    this->error_stream = this->dk_create_ostream(L_ERROR);
+        this->warning_stream = this->dk_create_ostream(L_WARNING);
+        this->info_stream = this->dk_create_ostream(L_INFO);
+	} 
+	~dk_output_stream() {
+		free(this->error_stream);
+		free(this->warning_stream);
+		free(this->info_stream);
+	}	
+	
+	template <typename T> dk_output_stream & operator<<(const  T t) {
+		if(this->level >= L_ERROR) {
+			*error_stream<<t;
+			//error_stream->flush();
+        }
+        if(this->level >= L_WARNING){
+            *warning_stream<<t;
+			//warning_stream->flush();
+		}
+        if(this->level >= L_INFO){
+            *info_stream<<t;
+			//info_stream->flush();
+		}
+        if(this->level >= L_DEBUG ) {
+            std::cout<<t;    
+        }
+		return *this;
+	}  
+	
+	dk_output_stream & operator<<(std::ostream &(*f)(std::ostream &)) {
+		if(this->level >= L_ERROR) {
+			*error_stream<<"\n";
+			error_stream->flush();
+		}
+		if(this->level >= L_WARNING){
+			*warning_stream<<"\n";
+			warning_stream->flush();
+		}
+		if(this->level >= L_INFO){
+			*info_stream<<"\n";
+			info_stream->flush();
+		}
+		if(this->level >= L_DEBUG ) {
+			std::cout<<std::endl;    
+		}
+		return *this;	
+	}
+
 private:
 	int level; 
 	std::ostream *error_stream;   
 	std::ostream *warning_stream;
 	std::ostream *info_stream;
-public:
-	dk_output_stream(int _level):level(_level) {
-		std::cout << "level:" << level << std::endl;
-	    this->error_stream = this->dk_create_ostream(L_ERROR);
-        this->warning_stream = this->dk_create_ostream(L_WARNING);
-        this->info_stream = this->dk_create_ostream(L_INFO);
-	} 
-	
-	
-	template <typename T> dk_output_stream & operator<<(const  T t) {
-		if(this->level >= L_ERROR) {
-			*error_stream<<t;
-        }
-        if(this->level >= L_WARNING){
-            *warning_stream<<t;
-		}
-        if(this->level >= L_INFO){
-            *info_stream<<t;
-		}
-        if(this->level >= L_DEBUG ) {
-            std::cout<<t;    
-        }
-	}  
-
-
 	std::ostream* dk_create_ostream(int level) const {
-		const char *name = level>=L_ERROR?"/dk_error.log":(level>=L_WARNING?"/dk_warning":(level>=L_INFO?"/dk_info":NULL));	
+		const char *name = level>=L_ERROR?"/dk_error.log":(level>=L_WARNING?"/dk_warning.log":(level>=L_INFO?"/dk_info":NULL));	
 		if(name == NULL) {
 			return NULL;	
 		}else {
@@ -61,15 +88,26 @@ public:
 				}
 			}
 			strcat(file_path,name);
-			std::ofstream *fstm = new std::ofstream(std::string(file_path),std::ios::out);
+			std::ofstream *fstm = new std::ofstream(std::string(file_path),std::ios::app);
 			free(file_path);
 			return fstm;
 		}
 	}
 };
 
+std::map<int,dk_output_stream *> server_logs;
+
+dk_output_stream LOG(int level) {
+	if(server_logs.count(level)!=0){
+		return *server_logs[level];
+	}else {
+		dk_output_stream *stream = new dk_output_stream(level);  
+		server_logs[level] = stream;
+		return *stream; 
+	}	
+}
+
 int main(int args , const char **argv) {
-    dk_output_stream s(L_ERROR);
-    s<<"test error"<<3<<"nuil"; 
+    LOG_WARNING<<"test warning"<<3<<"nuil"<<std::endl;
     return 0;
 }

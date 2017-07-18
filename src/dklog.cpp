@@ -5,6 +5,7 @@
 #include <fstream>
 #include <ostream>
 #include <map>
+#include <time.h>
 /********************************************************************************
  * define a class to process the log
  * every level has a file outputstream , higher level will cover the lower level's 
@@ -22,6 +23,7 @@ public:
         this->info_stream = this->dk_create_ostream(L_INFO);
 	} 
 	~dk_output_stream() {
+		(*this)<<std::endl; /// flush all the file output stream
 		free(this->error_stream);
 		free(this->warning_stream);
 		free(this->info_stream);
@@ -95,19 +97,20 @@ private:
 	}
 };
 
-std::map<int,dk_output_stream *> server_logs;
-
 dk_output_stream LOG(int level) {
-	if(server_logs.count(level)!=0){
-		return *server_logs[level];
-	}else {
-		dk_output_stream *stream = new dk_output_stream(level);  
-		server_logs[level] = stream;
-		return *stream; 
-	}	
+	dk_output_stream s(level);
+	time_t t= time(NULL);
+	if(t!=-1) {
+		char *asct = asctime(localtime(&t));
+		size_t asctsize = strlen(asct);
+		asct[asctsize-1]='\0';
+		s<<asct<<": ";
+	}
+	return s;
 }
 
-//int main(int args , const char **argv) {
-//   LOG_WARNING<<"test warning"<<3<<"nuil"<<std::endl;
-//   return 0;
-//}
+int main(int args , const char **argv) {
+   LOG_WARNING<<"test warning"<<3<<"nuil"<<std::endl;
+   return 0;
+}
+

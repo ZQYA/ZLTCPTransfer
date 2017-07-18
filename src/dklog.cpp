@@ -18,15 +18,9 @@
 class dk_output_stream {
 public:
 	dk_output_stream(int _level):level(_level) {
-	    this->error_stream = this->dk_create_ostream(L_ERROR);
-        this->warning_stream = this->dk_create_ostream(L_WARNING);
-        this->info_stream = this->dk_create_ostream(L_INFO);
 	} 
 	~dk_output_stream() {
 		(*this)<<std::endl; /// flush all the file output stream
-		free(this->error_stream);
-		free(this->warning_stream);
-		free(this->info_stream);
 	}	
 	
 	template <typename T> dk_output_stream & operator<<(const  T t) {
@@ -69,10 +63,7 @@ public:
 
 private:
 	int level; 
-	std::ostream *error_stream;   
-	std::ostream *warning_stream;
-	std::ostream *info_stream;
-	std::ostream* dk_create_ostream(int level) const {
+	static std::ostream* dk_create_ostream(int level) {
 		const char *name = level>=L_ERROR?"/dk_error.log":(level>=L_WARNING?"/dk_warning.log":(level>=L_INFO?"/dk_info":NULL));	
 		if(name == NULL) {
 			return NULL;	
@@ -95,22 +86,44 @@ private:
 			return fstm;
 		}
 	}
+	static std::ostream *error_stream ;   
+	static std::ostream *warning_stream; 
+	static std::ostream *info_stream;
 };
 
-dk_output_stream LOG(int level) {
-	dk_output_stream s(level);
-	time_t t= time(NULL);
-	if(t!=-1) {
-		char *asct = asctime(localtime(&t));
-		size_t asctsize = strlen(asct);
-		asct[asctsize-1]='\0';
-		s<<asct<<": ";
-	}
-	return s;
-}
+std::ostream *dk_output_stream::error_stream = dk_output_stream::dk_create_ostream(L_ERROR);   
+std::ostream *dk_output_stream::warning_stream = dk_output_stream::dk_create_ostream(L_WARNING);
+std::ostream *dk_output_stream::info_stream = dk_output_stream::dk_create_ostream(L_INFO);
+
+dk_output_stream s(L_ERROR);
+#define LOG(level)  s = dk_output_stream(level);\
+	switch(level) { \
+		case L_DEBUG: \
+				s<<"[DEBUG]";\
+			break;\
+		case L_INFO:\
+				s<<"[INFO]";\
+			break;\
+		case L_WARNING:\
+				s<<"[WARNING]";\
+			break;\
+		case L_ERROR:\
+				s<<"[ERROR]";\
+			break;\
+	time_t t= time(NULL);\
+	if(t!=-1) {\
+		char *asct = asctime(localtime(&t));\
+		size_t asctsize = strlen(asct);\
+		asct[asctsize-1]='\0';\
+		s<<asct;\
+		}\
+	}\
+	s<<":"<<__FILE__<<":"<<__func__<<":"<<__LINE__<<":";\
+	s
 
 int main(int args , const char **argv) {
    LOG_WARNING<<"test warning"<<3<<"nuil"<<std::endl;
+   LOG_ERROR<<"test error"<<3<<"nuil"<<std::endl;
    return 0;
 }
 

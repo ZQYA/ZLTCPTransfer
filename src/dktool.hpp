@@ -4,6 +4,8 @@
 #include <netinet/in.h>
 #include <strings.h>
 #include <arpa/inet.h>
+#include "dklog.hpp"
+#include <cstring>
 typedef int SOCKET;
 extern int tcp_backlog_size;   /// change this value can change the tcp connected and conneting buffer size
 SOCKET dk_socket();
@@ -21,5 +23,5 @@ ssize_t dk_write(SOCKET fd,void *buffer, size_t n);
 int dk_connect(SOCKET socket, const struct sockaddr *address,socklen_t address_len);
 /// start deamon process
 void dk_deamonInit();
-#define dk_perror(fmt) printf("ERROR:%s: function: %s line:%d\n",__FILE__,__func__,__LINE__);perror(fmt)
+#define dk_perror(fmt) LOG_ERROR<<fmt<<std::strerror(errno)
 #define dk_close(fd) close(fd)

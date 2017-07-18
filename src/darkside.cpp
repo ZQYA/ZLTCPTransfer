@@ -21,6 +21,7 @@ extern "C" {
 #include "lua_src/src/lualib.h"
 }
 #include <iostream>
+#include "dklog.hpp"
 //// macros 
 #define dk_check(val) if(-1 == val) exit(1)
 /// constants
@@ -124,8 +125,10 @@ void dk_master_thread(void) {
 		if(select(max_fd,&read_set,NULL,NULL,&tv)>0) {
 			if(dk_start_flag&&FD_ISSET(listen_sock_fd,&read_set)) {
 				accecpt_new_connection(listen_sock_fd);										
+				LOG_INFO<<"client: "<<listen_sock_fd <<" has connected";
 			}else if (dk_start_flag && FD_ISSET(heartbeat_sock_fd,&read_set)) {
 				accecpt_new_connection(heartbeat_sock_fd);
+				LOG_INFO<<"heartbeat: "<<listen_sock_fd <<" has connected";
 			}
 		}
 	}
@@ -134,7 +137,6 @@ void dk_master_thread(void) {
 void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
 	char *message = (char *)malloc(mp.content_length+1);
 	memcpy(message,mp.content,mp.content_length);
-	printf("%s",message);
     if (0 == strcmp(message, "heartbeat")) {
         ssize_t back_size = mp_write(sk_fd, "heartbeat", sizeof("heartbeat"), 0, 1,NULL);
         if (back_size == 0) {
@@ -142,6 +144,7 @@ void dk_handle_msg(mmtp mp, SOCKET sk_fd) {
         }
     
     }
+	LOG_INFO<<"handle heartbeat message from socket:"<<sk_fd;
 	bzero(message,mp.content_length+1);
 	free(message);
 }
@@ -154,15 +157,20 @@ void dk_handle_img(mmtp mp, SOCKET sk_fd) {
 	
 	int fd = sock_data_map[sk_fd].fd;
 	ssize_t re = write(fd,img_data,mp.content_length);
+	LOG_INFO<<"handle image message from socket:"<<sk_fd<<"file name:"<<sock_data_map[sk_fd].filename;
 	if(re < 0) {
+		LOG_ERROR<<"failed image message from socket:"<<sk_fd<<"file name:"<<sock_data_map[sk_fd].filename;
 		dk_perror("write failed");
 	}else {
 		if(mp.is_end) {
 			bool isimg = check_image_in_path(L,sock_data_map[sk_fd].filename);			
 			if(!isimg) {
-				printf("check img failed");	
+				LOG_ERROR<<"not invalide image message from socket:"<<sk_fd<<"file name:"<<sock_data_map[sk_fd].filename;
+			}else {
+				LOG_INFO<<"complete image message from socket:"<<sk_fd<<"file name:"<<sock_data_map[sk_fd].filename;
 			}
 		}
+		LOG_INFO<<"succeed image message from socket:"<<sk_fd<<"file name:"<<sock_data_map[sk_fd].filename;
 	}
 }
 
@@ -190,6 +198,8 @@ void dk_handle_mmtp(mmtp mp, SOCKET sk_fd)  {
 			int res = mkdir(home_path, 0777);
 			if (res!=0) {
 				dk_perror("create dir field");
+			}else {
+				LOG_INFO<<"crete dir:"<<home_path<<"success";
 			}
 		}
 		strcat(home_path,0==mp.type?"/log":(1==mp.type?"/img":"/vdo"));
@@ -224,7 +234,6 @@ void dk_worker_thread(void) {
 			while(dk_start_flag && sock_list.size()<=0){
 				pthread_cond_wait(&receive_queue_full_sig,&receive_queue_empty_lock);	
 			}		
-			
 			fd_set read_set;
 			struct timeval tv;
 			tv.tv_sec = 1;
@@ -241,6 +250,7 @@ void dk_worker_thread(void) {
 			if (select(max_fd+1,&read_set,NULL,NULL,&tv)>0) {
 				for(std::list<SOCKET>::iterator it = sock_list.begin(); it != sock_list.end(); ++it) {
 					SOCKET sk_fd = *it;	
+					LOG_INFO<<"server is handle connection "<<sk_fd;
 					if(FD_ISSET(sk_fd,&read_set)) {
 						struct mmtp mp;
 						initilizer_mmtp(&mp);
@@ -276,6 +286,9 @@ SOCKET create_listen_socks(SOCKET *heartbeat_sock_fd) {
 		dk_check(stat);
 		stat = dk_listen(sk_fd);
 		dk_check(stat);
+		LOG_INFO<<"server creat success";
+	}else {
+		LOG_ERROR<<"server creat failed";
 	}
 	SOCKET result = sk_fd;
 	sk_fd = dk_socket();
@@ -289,6 +302,9 @@ SOCKET create_listen_socks(SOCKET *heartbeat_sock_fd) {
 		stat = dk_listen(sk_fd);
 		*heartbeat_sock_fd = sk_fd;
 		dk_check(stat);
+		LOG_INFO<<"heartbeat creat success";
+	}else {
+		LOG_WARNING<<"heartbeat creat failed";
 	}
 	return result;
 }
@@ -315,7 +331,7 @@ void* build_map_ptr() {
 //  	   workers work in a thread pool,
 //  	   init work_count size threads
 int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port = 9000,int heartbeat_port = 10001) {
-	dk_deamonInit();
+//	dk_deamonInit();
 	L = luaL_newstate();
 	luaL_openlibs(L);
 	int re = luaL_loadfile(L,"./imgck.lua")||lua_pcall(L,0,0,0);

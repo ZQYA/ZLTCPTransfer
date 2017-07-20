@@ -1,5 +1,6 @@
 #include "dklog.hpp"
 #include <time.h>
+#include <execinfo.h>
 /********************************************************************************
  * define a class to process the log
  * every level has a file outputstream , higher level will cover the lower level's 
@@ -41,6 +42,17 @@ std::string dk_prefix_log(int level) {
 		s+=asct;
 	}
 	return s;
+}
+
+std::string backtrace_str() {
+	std::string b_st;
+	void* callstack[128];
+	int i,frames = backtrace(callstack,128);
+	char **strs = backtrace_symbols(callstack,frames);
+	for (i = 0; i < frames; ++i) {
+		b_st += std::string(strs[i]);
+	}
+	return b_st;
 }
 //int main(int args , const char **argv) {
 //  LOG_WARNING<<"test warning"<<3<<"nuil"<<std::endl;

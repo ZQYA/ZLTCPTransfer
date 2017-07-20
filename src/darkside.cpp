@@ -123,13 +123,13 @@ void dk_master_thread(void) {
 		tv.tv_sec = 0;
 		tv.tv_usec = 200 * 1000;
 		if(select(max_fd,&read_set,NULL,NULL,&tv)>0) {
-			if(dk_start_flag&&FD_ISSET(listen_sock_fd,&read_set)) {
-				accecpt_new_connection(listen_sock_fd);										
+			if(dk_start_flag&&FD_ISSET(listen_sock_fd,&read_set)) { accecpt_new_connection(listen_sock_fd);
 				LOG_INFO<<"client: "<<listen_sock_fd <<" has connected";
 			}else if (dk_start_flag && FD_ISSET(heartbeat_sock_fd,&read_set)) {
 				accecpt_new_connection(heartbeat_sock_fd);
 				LOG_INFO<<"heartbeat: "<<listen_sock_fd <<" has connected";
 			}
+			FD_CLR(listen_sock_fd,&read_set);
 		}
 	}
 }
@@ -245,13 +245,14 @@ void dk_worker_thread(void) {
 				FD_SET(sk_fd,&read_set);
 				max_fd = MAXSOCK(max_fd,sk_fd);	
 			}
+			
 			SOCKET *f_ds = new SOCKET[sock_list.size()];
 			int f_di = 0;
 			if (select(max_fd+1,&read_set,NULL,NULL,&tv)>0) {
 				for(std::list<SOCKET>::iterator it = sock_list.begin(); it != sock_list.end(); ++it) {
 					SOCKET sk_fd = *it;	
-					LOG_INFO<<"server is handle connection "<<sk_fd;
 					if(FD_ISSET(sk_fd,&read_set)) {
+						LOG_INFO<<"server is handle connection "<<sk_fd;
 						struct mmtp mp;
 						initilizer_mmtp(&mp);
 						int size = mp_read(sk_fd,0,&mp);
@@ -260,7 +261,7 @@ void dk_worker_thread(void) {
 						}else {
 							dk_handle_mmtp(mp, sk_fd);
 						}
-//						FD_CLR(sk_fd,&read_set);
+						FD_CLR(sk_fd,&read_set);
 					}
 				}
 			}
@@ -272,6 +273,7 @@ void dk_worker_thread(void) {
 				sock_data_map.erase(f_ds[i]);
 			}
 			pthread_mutex_unlock(&receive_queue_empty_lock);	
+			delete[] f_ds;
 	}
 }
 
@@ -345,7 +347,7 @@ int dk_start(int worker_count = 1,  int listen_sock_count = 6, int listen_port =
 	dk_heartbeat_port = heartbeat_port;
 	dk_accept_max_count = listen_sock_count;
 	listen_sock_fd = create_listen_socks(&heartbeat_sock_fd);
-	for(int i = 0; i < worker_count; ++i)
+//	for(int i = 0; i < worker_count; ++i)
 		dk_thread_func(dk_worker_thread);
 	int master_stat = dk_thread_func(dk_master_thread,false);	
 	return master_stat;

@@ -11,12 +11,17 @@
 #define L_INFO   	1
 #define L_WARNING 	2
 #define L_ERROR  	3
+extern std::string backtrace_str() ;
 class dk_output_stream {
 public:
 	dk_output_stream(int _level):level(_level) {
 	} 
 	~dk_output_stream() {
 		(*this)<<std::endl; /// flush all the file output stream
+		if(this->level>=L_ERROR) {
+			(*this)<<backtrace_str();
+			(*this)<<std::endl;
+		}
 	}	
 	
 	template <typename T> dk_output_stream & operator<<(const  T t) {
